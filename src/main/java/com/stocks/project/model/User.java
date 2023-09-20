@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
+import java.sql.Date;
 
 @Entity
 @Table(name = "user")
@@ -26,5 +26,11 @@ public class User {
     private String secondName;
 
     @Column(name = "birthday")
-    private Date date;
+    private Date birthday;
+
+    public User(String firstName, String secondName, Date birthday) {
+        this.firstName = firstName;
+        this.secondName = secondName;
+        this.birthday = birthday;
+    }
 }

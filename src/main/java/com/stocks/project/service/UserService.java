@@ -19,4 +19,20 @@ public class UserService {
     public List<User> findAll() {
         return userRepository.findAll();
     }
+
+    public User findById(int id) {
+        return userRepository.findById(id);
+    }
+
+    public User createUser(User user) {
+        return userRepository.createUser(user);
+    }
+
+    public void deleteUser(int userId) {
+        userRepository.delete(userId);
+    }
+
+    public User updateUser(User updatedUser, int userId) {
+        return userRepository.updateUser(updatedUser, userId);
+    }
 }
