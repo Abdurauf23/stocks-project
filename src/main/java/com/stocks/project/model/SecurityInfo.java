@@ -17,10 +17,6 @@ public class SecurityInfo {
     @Column(name = "user_id")
     private int userId;
 
-    @OneToOne
-    @PrimaryKeyJoinColumn
-    private User user;
-
     @Column(name = "username")
     private String username;
 
@@ -29,11 +25,4 @@ public class SecurityInfo {
 
     @Column(name = "email")
     private String email;
-
-    public SecurityInfo(int userId, String username, String password, String email) {
-        this.userId = userId;
-        this.username = username;
-        this.password = password;
-        this.email = email;
-    }
 }
