@@ -27,8 +27,4 @@ public class User {
 
     @Column(name = "birthday")
     private Date date;
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "security_id", referencedColumnName = "security_id")
-    private SecurityInfo securityInfo;
 }

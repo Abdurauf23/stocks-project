@@ -14,9 +14,12 @@ import lombok.Setter;
 @Setter
 public class SecurityInfo {
     @Id
-    @Column(name = "security_id")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private int userId;
+
+    @OneToOne
+    @PrimaryKeyJoinColumn
+    private User user;
 
     @Column(name = "username")
     private String username;
@@ -27,6 +30,10 @@ public class SecurityInfo {
     @Column(name = "email")
     private String email;
 
-    @OneToOne(mappedBy = "securityInfo")
-    private User user;
+    public SecurityInfo(int userId, String username, String password, String email) {
+        this.userId = userId;
+        this.username = username;
+        this.password = password;
+        this.email = email;
+    }
 }
