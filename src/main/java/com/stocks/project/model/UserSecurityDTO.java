@@ -8,7 +8,9 @@ import lombok.Setter;
 import java.util.Date;
 
 @AllArgsConstructor
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class UserSecurityDTO {
     private int userId;
     private String firstName;

@@ -6,7 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,50 +27,42 @@ public class UserRepository {
 
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
-        String query = "SELECT * FROM \"user\";";
-
+        String query = "SELECT * FROM stocks_user;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
         ) {
             ResultSet resultSet = preparedStatement.executeQuery();
-
             while (resultSet.next()) {
                 users.add(userMapper.mapRow(resultSet));
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return users;
     }
 
     public User findById(int id) {
         User user = null;
-        String query = "SELECT * FROM \"user\" WHERE user_id = ?;";
-
+        String query = "SELECT * FROM stocks_user WHERE user_id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
         ) {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next())
+            if (resultSet.next()) {
                 user = userMapper.mapRow(resultSet);
-
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return user;
     }
 
     public User createUser(User newUser) {
         User user = null;
-        String query = "INSERT INTO \"user\" (first_name, second_name, birthday) VALUES (?, ?, ?);";
-
+        String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -77,45 +73,38 @@ public class UserRepository {
             preparedStatement.setDate(3, newUser.getBirthday());
 
             preparedStatement.executeUpdate();
-
             ResultSet res = preparedStatement.getGeneratedKeys();
-
-            if (res.next())
+            if (res.next()) {
                 user = findById(res.getInt(1));
-
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return user;
     }
 
     public void delete(int userId) {
-        String query = "DELETE FROM \"user\" WHERE user_id = ?;";
+        String query = "DELETE FROM stocks_user WHERE user_id = ?;";
         String queryToDeleteInfo = "DELETE FROM security_info WHERE user_id = ?;";
-
         try(
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement =
+                PreparedStatement deleteUserPrepStatement =
                         connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-                PreparedStatement preparedStatement1 =
+                PreparedStatement deleteSecurityInfoPrepStatement =
                         connection.prepareStatement(queryToDeleteInfo)
         ) {
             try {
                 connection.setAutoCommit(false);
+                deleteUserPrepStatement.setInt(1, userId);
+                deleteSecurityInfoPrepStatement.setInt(1, userId);
 
-                preparedStatement.setInt(1, userId);
-                preparedStatement1.setInt(1, userId);
-
-                preparedStatement1.executeUpdate();
-                preparedStatement.executeUpdate();
-
+                deleteSecurityInfoPrepStatement.executeUpdate();
+                deleteUserPrepStatement.executeUpdate();
                 connection.commit();
             } catch (SQLException e) {
                 connection.rollback();
                 e.printStackTrace();
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -123,8 +112,7 @@ public class UserRepository {
 
     public User updateUser(User updatedUser, int userId) {
         User user = null;
-        String query = "UPDATE \"user\" SET first_name = ?, second_name = ?, birthday = ? WHERE user_id = ?;";
-
+        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ? WHERE user_id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -136,16 +124,13 @@ public class UserRepository {
             preparedStatement.setInt(4, userId);
 
             preparedStatement.executeUpdate();
-
             ResultSet res = preparedStatement.getGeneratedKeys();
-
-            if (res.next())
+            if (res.next()) {
                 user = findById(res.getInt(1));
-
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return user;
     }
 }
