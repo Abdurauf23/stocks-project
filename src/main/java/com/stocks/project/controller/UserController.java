@@ -1,9 +1,13 @@
 package com.stocks.project.controller;
 
+import com.stocks.project.exception.NoFirstNameException;
+import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.User;
 import com.stocks.project.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,8 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
@@ -27,28 +31,85 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getAll() {
-        return userService.findAll();
+    public ResponseEntity<List<User>> getAll() {
+        return new ResponseEntity<>(userService.findAll(), HttpStatus.OK);
     }
 
     @GetMapping("/{userId}")
-    public User getById(@PathVariable int userId) {
-        return userService.findById(userId);
+    public ResponseEntity<?> getById(@PathVariable int userId) {
+        Optional<User> user = userService.findById(userId);
+        if (user.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                    {
+                        "error" : "No such user"\s
+                    }
+                    """);
+        }
+        return ResponseEntity.of(user);
     }
 
     @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
+    public ResponseEntity<?> createUser(@RequestBody User newUser) {
+        Optional<User> user;
+        try {
+            user = userService.createUser(newUser);
+            if (user.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
+                        {
+                            "error" : "No such user"\s
+                        }
+                        """);
+            }
+            return new ResponseEntity<>(user.get(), HttpStatus.CREATED);
+        } catch (NoFirstNameException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                    {
+                        "error" : "'firstName' is required to create a user." \s
+                    }
+                    """);
+        }
     }
 
+    // TODO: what is the correct way to implement deleting here?
     @DeleteMapping("/{userId}")
-    public void deleteUser(HttpServletResponse response, @PathVariable int userId) throws IOException {
-        userService.deleteUser(userId);
-        response.sendRedirect("/users");
+    public ResponseEntity<?> deleteUser(@PathVariable int userId) {
+        try {
+            userService.deleteUser(userId);
+        } catch (NoSuchUserException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                    {
+                        "error" : "No such user"\s
+                    }
+                    """);
+        }
+        return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
     @PutMapping("/{userId}")
-    public User updateUser(@RequestBody User updatedUser, @PathVariable int userId) {
-        return userService.updateUser(updatedUser, userId);
+    public ResponseEntity<?> updateUser(@RequestBody User updatedUser, @PathVariable int userId) {
+        try {
+            return new ResponseEntity<>(userService.updateUser(updatedUser, userId), HttpStatus.OK);
+        } catch (NoSuchUserException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                    {
+                        "error" : "No such user"\s
+                    }
+                    """);
+        }
     }
 }
