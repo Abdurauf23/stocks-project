@@ -10,7 +10,7 @@ import java.sql.SQLException;
 public class SecurityMapper {
     public SecurityInfo mapRow(ResultSet rs) throws SQLException {
         return new SecurityInfo(
-                rs.getInt("user_id"),
+                rs.getInt("id"),
                 rs.getString("username"),
                 rs.getString("password"),
                 rs.getString("email")

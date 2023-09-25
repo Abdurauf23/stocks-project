@@ -48,7 +48,7 @@ public class UserRepository {
 
     public Optional<User> findById(int id) {
         User user = null;
-        String query = "SELECT * FROM stocks_user WHERE user_id = ?;";
+        String query = "SELECT * FROM stocks_user WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
@@ -94,8 +94,8 @@ public class UserRepository {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
-        String query = "DELETE FROM stocks_user WHERE user_id = ?;";
-        String queryToDeleteInfo = "DELETE FROM security_info WHERE user_id = ?;";
+        String query = "DELETE FROM stocks_user WHERE id = ?;";
+        String queryToDeleteInfo = "DELETE FROM security_info WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement deleteUserPrepStatement = connection.prepareStatement(query);
@@ -135,7 +135,7 @@ public class UserRepository {
         }
 
         Optional<User> user = Optional.empty();
-        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() WHERE user_id = ?;";
+        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -160,7 +160,7 @@ public class UserRepository {
     public Optional<User> register(UserSecurityDTO dto) {
         Optional<User> user = Optional.empty();
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
-        String queryToDeleteInfo = "INSERT INTO security_info (user_id, username, password, email) VALUES (?, ?, ?, ?);";
+        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email) VALUES (?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement insertUser =

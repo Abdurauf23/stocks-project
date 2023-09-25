@@ -10,7 +10,7 @@ import java.sql.SQLException;
 public class UserMapper {
     public User mapRow(ResultSet rs) throws SQLException {
         return new User(
-                rs.getInt("user_id"),
+                rs.getInt("id"),
                 rs.getString("first_name"),
                 rs.getString("second_name"),
                 rs.getDate("birthday"),

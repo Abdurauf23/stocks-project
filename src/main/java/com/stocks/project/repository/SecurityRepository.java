@@ -45,7 +45,7 @@ public class SecurityRepository {
 
     public SecurityInfo findById(int id) {
         SecurityInfo securityInfo = null;
-        String query = "SELECT * FROM security_info WHERE user_id = ?;";
+        String query = "SELECT * FROM security_info WHERE id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
@@ -64,7 +64,7 @@ public class SecurityRepository {
 
     public SecurityInfo createSecurityInfo(SecurityInfo newSecurityInfo, int userId) {
         SecurityInfo securityInfo = null;
-        String query = "INSERT INTO security_info (user_id, username, password, email) VALUES (?, ?, ?, ?);";
+        String query = "INSERT INTO security_info (id, username, password, email) VALUES (?, ?, ?, ?);";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -88,7 +88,7 @@ public class SecurityRepository {
     }
 
     public void delete(int userId) {
-        String query = "DELETE FROM security_info WHERE user_id = ?;";
+        String query = "DELETE FROM security_info WHERE id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -103,7 +103,7 @@ public class SecurityRepository {
 
     public SecurityInfo update(SecurityInfo updatedInfo, int userId) {
         SecurityInfo securityInfo = null;
-        String query = "UPDATE security_info SET email = ?, password = ?, username = ? WHERE user_id = ?;";
+        String query = "UPDATE security_info SET email = ?, password = ?, username = ? WHERE id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
