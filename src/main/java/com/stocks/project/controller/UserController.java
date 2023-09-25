@@ -3,6 +3,7 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.User;
+import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -79,7 +80,6 @@ public class UserController {
         }
     }
 
-    // TODO: what is the correct way to implement deleting here?
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable int userId) {
         try {
@@ -110,6 +110,20 @@ public class UserController {
                         "error" : "No such user"\s
                     }
                     """);
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody UserSecurityDTO dto) {
+        try {
+            return new ResponseEntity<>(userService.register(dto), HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                            
+                            """);
         }
     }
 }

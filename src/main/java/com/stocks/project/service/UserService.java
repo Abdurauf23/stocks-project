@@ -3,6 +3,7 @@ package com.stocks.project.service;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.User;
+import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,5 +38,9 @@ public class UserService {
 
     public Optional<User> updateUser(User updatedUser, int userId) throws NoSuchUserException {
         return userRepository.updateUser(updatedUser, userId);
+    }
+
+    public Optional<User> register(UserSecurityDTO dto) {
+        return userRepository.register(dto);
     }
 }

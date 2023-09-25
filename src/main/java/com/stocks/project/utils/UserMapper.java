@@ -13,7 +13,10 @@ public class UserMapper {
                 rs.getInt("user_id"),
                 rs.getString("first_name"),
                 rs.getString("second_name"),
-                rs.getDate("birthday")
+                rs.getDate("birthday"),
+                rs.getTimestamp("created_at"),
+                rs.getTimestamp("updated_at"),
+                rs.getBoolean("is_deleted")
         );
     }
 }

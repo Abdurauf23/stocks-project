@@ -5,18 +5,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
+import java.sql.Date;
 
 @AllArgsConstructor
 @Getter
 @Setter
 @NoArgsConstructor
 public class UserSecurityDTO {
-    private int userId;
     private String firstName;
     private String secondName;
     private String email;
     private String username;
+    private String password;
     private Date birthday;
 }
-
