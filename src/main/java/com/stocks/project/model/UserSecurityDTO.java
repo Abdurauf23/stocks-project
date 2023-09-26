@@ -1,16 +1,12 @@
 package com.stocks.project.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
 import java.sql.Date;
 
 @AllArgsConstructor
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 public class UserSecurityDTO {
     private String firstName;
     private String secondName;
