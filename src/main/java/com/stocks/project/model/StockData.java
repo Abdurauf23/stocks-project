@@ -12,6 +12,4 @@ public class StockData {
     private Meta meta;
     private List<StockValue> values;
     private String status;
-
 }
-

@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StockValue {
     private String datetime;
-    private String open;
-    private String high;
-    private String low;
-    private String close;
-    private String volume;
+    private double open;
+    private double high;
+    private double low;
+    private double close;
+    private int volume;
 }
