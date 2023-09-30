@@ -29,7 +29,7 @@ public class StockController {
         if (stockData.isPresent()) {
             return ResponseEntity
                     .status(HttpStatus.OK)
-                    .body(stockService.getStock(symbol));
+                    .body(stockData.get());
         }
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)

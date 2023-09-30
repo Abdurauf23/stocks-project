@@ -28,14 +28,15 @@ public class StockRepository {
 
     public Optional<StockData> findBySymbol(String symbol) {
         StockData stockData = null;
-        String query =
-                "SELECT m.id AS meta_id, symbol, data_interval, currency, "
-                + "exchange_timezone, exchange, mic_code, type_, stock_status, "
-                + "v.id AS value_id, date_time, open, high, low, close, volume "
-                + "FROM stock_meta AS m "
-                + "INNER JOIN stock_value AS v ON m.id = v.meta_id "
-                + "WHERE date_time >= date_trunc('DAY', now())"
-                + " AND symbol = ?;";
+        String query = """
+                SELECT m.id AS meta_id, symbol, data_interval, currency,
+                exchange_timezone, exchange, mic_code, type_, stock_status, 
+                v.id AS value_id, date_time, open, high, low, close, volume 
+                FROM stock_meta AS m 
+                INNER JOIN stock_value AS v ON m.id = v.meta_id 
+                WHERE date_time >= date_trunc('DAY', now()) 
+                AND symbol = ?;
+                """;
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
@@ -66,5 +67,9 @@ public class StockRepository {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public void addStockData(StockData stockData) {
+
     }
 }
