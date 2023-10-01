@@ -1,5 +1,6 @@
 package com.stocks.project.job;
 
+import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
 import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.repository.StockRepository;
@@ -30,7 +31,6 @@ public class ScheduledJob {
         this.restTemplate = new RestTemplate();
     }
 
-    @SneakyThrows
     @Scheduled(cron = "1 0 0 ? * *") // updates at first second of the day
     public void updateStocksDate() {
         long start = System.currentTimeMillis();
@@ -47,7 +47,11 @@ public class ScheduledJob {
                     "&outputsize=1" +
                     "&apikey=" + API_KEY;
             StockData stockData = restTemplate.getForObject(uri, StockData.class);
-            stockRepository.addStockData(stockData);
+            try {
+                stockRepository.addStockData(stockData);
+            } catch (NoStockMetaDataForThisSymbol e) {
+                e.printStackTrace();
+            }
             System.out.println(stockData);
         }
 
