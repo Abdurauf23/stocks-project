@@ -1,5 +1,6 @@
 package com.stocks.project.job;
 
+import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.repository.StockRepository;
 import lombok.SneakyThrows;
@@ -30,23 +31,25 @@ public class ScheduledJob {
     }
 
     @SneakyThrows
-    @Scheduled(cron = "40 11 18 ? * *")
+    @Scheduled(cron = "1 0 0 ? * *") // updates at first second of the day
     public void updateStocksDate() {
         long start = System.currentTimeMillis();
         log.info("Updating db started!");
 
-//        List<String> symbols = List.of("AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META", "TSM");
-//        for (String symbol : symbols) {
-//            String uri = BASE_URL + "/time_series?" +
-//                    "symbol=" + symbol +
-//                    "&interval=1min" +
-//                    "&timezone=Asia/Tashkent" +
-//                    "&outputsize=1" +
-//                    "&apikey=" + API_KEY;
-//            StockData stockData = restTemplate.getForObject(uri, StockData.class);
-//            stockRepository.addStockData(stockData);
-//            System.out.println(stockData);
-//        }
+        // "AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META", "TSM"
+        List<String> symbols = stockRepository.findAllMeta().stream().map(Meta::getSymbol).toList();
+
+        for (String symbol : symbols) {
+            String uri = BASE_URL + "/time_series?" +
+                    "symbol=" + symbol +
+                    "&interval=1min" +
+                    "&timezone=Asia/Tashkent" +
+                    "&outputsize=1" +
+                    "&apikey=" + API_KEY;
+            StockData stockData = restTemplate.getForObject(uri, StockData.class);
+            stockRepository.addStockData(stockData);
+            System.out.println(stockData);
+        }
 
         log.info("Updating ended. Time took: " + (System.currentTimeMillis() - start));
     }

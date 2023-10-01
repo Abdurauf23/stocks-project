@@ -1,7 +1,9 @@
 package com.stocks.project.repository;
 
+import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
 import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
+import com.stocks.project.model.StockValue;
 import com.stocks.project.utils.StockDataMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -11,6 +13,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,12 +33,11 @@ public class StockRepository {
         StockData stockData = null;
         String query = """
                 SELECT m.id AS meta_id, symbol, data_interval, currency,
-                exchange_timezone, exchange, mic_code, type_, stock_status, 
-                v.id AS value_id, date_time, open, high, low, close, volume 
-                FROM stock_meta AS m 
-                INNER JOIN stock_value AS v ON m.id = v.meta_id 
-                WHERE date_time >= date_trunc('DAY', now()) 
-                AND symbol = ?;
+                       exchange_timezone, exchange, mic_code, type_, stock_status,
+                       v.id AS value_id, date_time, open, high, low, close, volume
+                FROM stock_meta AS m
+                         INNER JOIN stock_value AS v ON m.id = v.meta_id
+                WHERE date_time = (SELECT MAX(date_time) FROM stock_value WHERE symbol = ?);
                 """;
         try (
                 Connection connection = dataSource.getConnection();
@@ -69,7 +71,37 @@ public class StockRepository {
         return list;
     }
 
-    public void addStockData(StockData stockData) {
 
+    public void addStockData(StockData stockData) throws NoStockMetaDataForThisSymbol {
+        String getMetaIdQuery = "SELECT id FROM stock_meta WHERE symbol = ?;";
+        String insertQuery = "INSERT INTO stock_value (meta_id, date_time, open, high, low, close, volume) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?);";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement getStatement = connection.prepareStatement(getMetaIdQuery);
+                PreparedStatement insertStatement = connection.prepareStatement(insertQuery);
+        ) {
+            getStatement.setString(1, stockData.getMeta().getSymbol());
+            ResultSet resultSet = getStatement.executeQuery();
+
+            if (resultSet.next()) {
+                int metaId = resultSet.getInt(1);
+                List<StockValue> values = stockData.getValues();
+
+                for (StockValue value : values) {
+                    insertStatement.setInt(1, metaId);
+                    insertStatement.setTimestamp(2, Timestamp.valueOf(value.getDatetime()));
+                    insertStatement.setDouble(3, value.getOpen());
+                    insertStatement.setDouble(4, value.getHigh());
+                    insertStatement.setDouble(5, value.getLow());
+                    insertStatement.setDouble(6, value.getClose());
+                    insertStatement.setInt(7, value.getVolume());
+                    insertStatement.addBatch();
+                }
+                insertStatement.executeBatch();
+            } else throw new NoStockMetaDataForThisSymbol();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
