@@ -1,37 +1,26 @@
 package com.stocks.project.service;
 
-import com.stocks.project.exception.NoStockWithThisName;
 import com.stocks.project.model.StockData;
-import org.springframework.beans.factory.annotation.Value;
+import com.stocks.project.repository.StockRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+
+import java.util.Optional;
 
 @Service
 public class StockService {
-    @Value("${external_api_key}")
-    private String API_KEY;
+    private final StockRepository stockRepository;
 
-    @Value("${base_url_external_api}")
-    private String BASE_URL;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    public StockData getStock(String symbol) throws NoStockWithThisName {
-        String uri = BASE_URL + "/time_series?" +
-                "symbol=" + symbol +
-                "&interval=1min" +
-                "&outputsize=1" +
-                "&apikey=" + API_KEY;
-        StockData stockData = restTemplate.getForObject(uri, StockData.class);
-        if (stockData.getStatus().equals("error")) {
-            throw new NoStockWithThisName();
-        }
-        return stockData;
+    @Autowired
+    public StockService(StockRepository stockRepository) {
+        this.stockRepository = stockRepository;
     }
 
-    public Object getAllStocks() {
-        String uri = BASE_URL + "/stocks?" +
-                "exchange=NASDAQ";
-        return restTemplate.getForObject(uri, Object.class);
+    public Optional<StockData> getStock(String symbol)  {
+        return stockRepository.findBySymbol(symbol);
+    }
+
+    public Object getAllMeta() {
+        return stockRepository.findAllMeta();
     }
 }
