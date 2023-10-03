@@ -4,7 +4,6 @@ import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
 import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.repository.StockRepository;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class ScheduledJob {
+public class UpdateStocks {
     @Value("${base_url_external_api}")
     private String BASE_URL;
     @Value("${external_api_key}")
@@ -26,7 +25,7 @@ public class ScheduledJob {
     private final RestTemplate restTemplate;
 
     @Autowired
-    public ScheduledJob(StockRepository stockRepository) {
+    public UpdateStocks(StockRepository stockRepository) {
         this.stockRepository = stockRepository;
         this.restTemplate = new RestTemplate();
     }
