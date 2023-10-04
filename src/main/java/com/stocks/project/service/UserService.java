@@ -43,4 +43,8 @@ public class UserService {
     public Optional<User> register(UserSecurityDTO dto) {
         return userRepository.register(dto);
     }
+
+    public List<?> getAllFavouriteStocks(int userId) {
+        return userRepository.getAllFavouriteStocks(userId);
+    }
 }

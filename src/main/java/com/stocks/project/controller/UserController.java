@@ -126,4 +126,9 @@ public class UserController {
                             """);
         }
     }
+
+    @GetMapping("/{userId}/fav-stocks")
+    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId) {
+        return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
+    }
 }

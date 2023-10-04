@@ -2,9 +2,11 @@ package com.stocks.project.repository;
 
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.model.EmailStockDTO;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
+import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -196,4 +198,65 @@ public class UserRepository {
         }
         return user;
     }
+
+    public List<EmailStockDTO> getAllFavouriteStocks(int userId) {
+        List<EmailStockDTO> stocksList = new ArrayList<>();
+        String query = """
+                SELECT symbol, date_time, open, high, low, close, volume, currency
+                FROM stock_users_fav_stocks
+                         INNER JOIN stock_meta sm ON sm.id = stock_users_fav_stocks.meta_id
+                         INNER JOIN stock_value sv ON sm.id = sv.meta_id
+                WHERE user_id = ? AND date_time = (
+                    SELECT MAX(date_time)
+                    FROM stock_value
+                );
+                """;
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setInt(1, userId);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                stocksList.add(new EmailStockDTO(
+                        resultSet.getString("symbol"),
+                        resultSet.getString("date_time"),
+                        resultSet.getDouble("open"),
+                        resultSet.getDouble("high"),
+                        resultSet.getDouble("low"),
+                        resultSet.getDouble("close"),
+                        resultSet.getInt("volume"),
+                        resultSet.getString("currency")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return stocksList;
+    }
+
+    public List<Pair<Integer, String>> getPeopleWithFavStocks() {
+        List<Pair<Integer, String>> integerList = new ArrayList<>();
+        String query = """
+                SELECT DISTINCT fav.user_id, email
+                FROM stock_users_fav_stocks fav
+                INNER JOIN public.security_info si ON fav.user_id = si.id;
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)
+        ) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                integerList.add(new Pair<>(
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("email")
+                        )
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return integerList;
+    }
+
 }
