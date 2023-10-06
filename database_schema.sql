@@ -51,3 +51,13 @@ CREATE TABLE stock_value
     close     NUMERIC(10, 5),
     volume    INTEGER
 );
+
+CREATE TABLE stock_users_fav_stocks
+(
+    user_id INTEGER NOT NULL
+        REFERENCES stocks_user,
+    meta_id INTEGER NOT NULL
+        REFERENCES stock_meta,
+    PRIMARY KEY (user_id, meta_id)
+);
+
