@@ -1,16 +1,20 @@
 package com.stocks.project.security.utils;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.security.Key;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -27,12 +31,18 @@ public class JwtUtils {
         return Jwts.builder()
                 .setSubject(login)
                 .setExpiration(new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiration)))
-                .signWith(SignatureAlgorithm.HS256, secret).compact();
+                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+    }
+
+    private Key getSignKey() {
+        byte[] keyBytes= Decoders.BASE64.decode(secret);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public Boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
+            JwtParserBuilder jwtParserBuilder = Jwts.parser().setSigningKey(secret);
+            jwtParserBuilder.build().parseClaimsJws(token);
             return true;
         } catch (SignatureException e) {
             log.info("Invalid JWT signature: " + e);
@@ -56,7 +66,8 @@ public class JwtUtils {
 
     public String getLoginFromJwt(String token) {
         try {
-            return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody().getSubject();
+            JwtParserBuilder jwtParserBuilder = Jwts.parser().setSigningKey(secret);
+            return jwtParserBuilder.build().parseClaimsJws(token).getBody().getSubject();
         } catch (Exception e) {
             log.info("Can't take login from jwt: " + e);
         }

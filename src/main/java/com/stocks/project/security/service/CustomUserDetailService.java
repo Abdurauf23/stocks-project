@@ -1,6 +1,6 @@
 package com.stocks.project.security.service;
 
-import com.stocks.project.model.SecurityInfo;
+import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,12 +20,12 @@ public class CustomUserDetailService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<SecurityInfo> securityCredentials = securityCredentialsRepository.findByUserLogin(username);
+        Optional<SecurityCredentials> securityCredentials = securityCredentialsRepository.findByUserLogin(username);
         if (securityCredentials.isEmpty()){
             throw new UsernameNotFoundException(username);
         }
         return User
-                .withUsername(securityCredentials.get().getUsername())
+                .withUsername(securityCredentials.get().getLogin())
                 .password(securityCredentials.get().getPassword())
                 .build();
     }

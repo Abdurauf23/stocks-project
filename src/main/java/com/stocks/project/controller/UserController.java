@@ -113,20 +113,6 @@ public class UserController {
         }
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserSecurityDTO dto) {
-        try {
-            return new ResponseEntity<>(userService.register(dto), HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            
-                            """);
-        }
-    }
-
     @GetMapping("/{userId}/fav-stocks")
     public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId) {
         return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);

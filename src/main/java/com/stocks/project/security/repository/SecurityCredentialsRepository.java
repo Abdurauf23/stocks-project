@@ -1,7 +1,6 @@
 package com.stocks.project.security.repository;
 
-import com.stocks.project.model.SecurityInfo;
-import com.stocks.project.utils.SecurityMapper;
+import com.stocks.project.security.model.SecurityCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -15,30 +14,34 @@ import java.util.Optional;
 @Repository
 public class SecurityCredentialsRepository {
     private final DataSource dataSource;
-    private final SecurityMapper securityMapper;
 
     @Autowired
-    public SecurityCredentialsRepository(DataSource dataSource, SecurityMapper securityMapper) {
+    public SecurityCredentialsRepository(DataSource dataSource) {
         this.dataSource = dataSource;
-        this.securityMapper = securityMapper;
     }
 
-    public Optional<SecurityInfo> findByUserLogin(String username) {
-        SecurityInfo securityInfo = null;
-        String query = "SELECT * FROM security_info WHERE username = ?;";
+    public Optional<SecurityCredentials> findByUserLogin(String username) {
+        SecurityCredentials securityCredentials = null;
+        String query = "SELECT * FROM security_info WHERE username = ? OR email = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
         ) {
             preparedStatement.setString(1, username);
+            preparedStatement.setString(2, username);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
-                securityInfo = securityMapper.mapRow(resultSet);
+                securityCredentials = new SecurityCredentials(
+                        resultSet.getInt("id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("password"),
+                        resultSet.getString("email")
+                );
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return Optional.ofNullable(securityInfo);
+        return Optional.ofNullable(securityCredentials);
     }
 }

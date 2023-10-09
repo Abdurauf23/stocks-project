@@ -40,8 +40,8 @@ public class UserService {
         return userRepository.updateUser(updatedUser, userId);
     }
 
-    public Optional<User> register(UserSecurityDTO dto) {
-        return userRepository.register(dto);
+    public void register(UserSecurityDTO dto) {
+        userRepository.register(dto);
     }
 
     public List<?> getAllFavouriteStocks(int userId) {

@@ -1,4 +1,4 @@
-package com.stocks.project.job;
+package com.stocks.project.service;
 
 import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
 import com.stocks.project.model.Meta;
@@ -8,13 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
 @Slf4j
-@Component
+@Service
 public class UpdateStocks {
     @Value("${base_url_external_api}")
     private String BASE_URL;

@@ -6,8 +6,10 @@ import com.stocks.project.model.EmailStockDTO;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
+import jakarta.transaction.Transactional;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -24,11 +26,13 @@ import java.util.Optional;
 public class UserRepository {
     private final DataSource dataSource;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserRepository(DataSource dataSource, UserMapper userMapper) {
+    public UserRepository(DataSource dataSource, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.dataSource = dataSource;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<User> findAll() {
@@ -159,8 +163,8 @@ public class UserRepository {
         return user;
     }
 
-    public Optional<User> register(UserSecurityDTO dto) {
-        Optional<User> user = Optional.empty();
+    @Transactional
+    public void register(UserSecurityDTO dto) {
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
         String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email) VALUES (?, ?, ?, ?);";
         try (
@@ -185,7 +189,7 @@ public class UserRepository {
                 // insert new row into security_info table with userPK
                 insertSecurityInfo.setInt(1, userPK);
                 insertSecurityInfo.setString(2, dto.getUsername());
-                insertSecurityInfo.setString(3, dto.getPassword());
+                insertSecurityInfo.setString(3, passwordEncoder.encode(dto.getPassword()));
                 insertSecurityInfo.setString(4, dto.getEmail());
                 insertSecurityInfo.executeUpdate();
                 connection.commit();
@@ -196,7 +200,6 @@ public class UserRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return user;
     }
 
     public List<EmailStockDTO> getAllFavouriteStocks(int userId) {
