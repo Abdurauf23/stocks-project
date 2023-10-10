@@ -1,6 +1,7 @@
 package com.stocks.project.repository;
 
 import com.stocks.project.exception.NoFirstNameException;
+import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.EmailStockDTO;
 import com.stocks.project.model.User;
@@ -262,4 +263,72 @@ public class UserRepository {
         return integerList;
     }
 
+    public void addStockToFavourite(int userId, String stockName) throws NoSuchUserException, NoStockWithThisNameException {
+        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
+        String addToFavQuery = "INSERT INTO stock_users_fav_stocks (user_id, meta_id) VALUES (?, ?);";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement insertIntoFavourites =
+                        connection.prepareStatement(addToFavQuery)
+        ) {
+            try {
+                connection.setAutoCommit(false);
+                if (findById(userId).isEmpty()) {
+                    throw new NoSuchUserException();
+                }
+                selectMeta.setString(1, stockName);
+                ResultSet resultSet = selectMeta.executeQuery();
+                if (!resultSet.next()) {
+                    throw new NoStockWithThisNameException();
+                }
+                int metaId = resultSet.getInt("id");
+                insertIntoFavourites.setInt(1, userId);
+                insertIntoFavourites.setInt(2, metaId);
+                insertIntoFavourites.executeUpdate();
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteStockFromFavourite(int userId, String stockName)
+            throws NoStockWithThisNameException, NoSuchUserException {
+        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
+        String deleteFromFavQuery = "DELETE FROM stock_users_fav_stocks WHERE user_id = ? AND meta_id = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement insertIntoFavourites =
+                        connection.prepareStatement(deleteFromFavQuery)
+        ) {
+            try {
+                connection.setAutoCommit(false);
+                if (findById(userId).isEmpty()) {
+                    throw new NoSuchUserException();
+                }
+                selectMeta.setString(1, stockName);
+                ResultSet resultSet = selectMeta.executeQuery();
+                if (!resultSet.next()) {
+                    throw new NoStockWithThisNameException();
+                }
+                int metaId = resultSet.getInt("id");
+                insertIntoFavourites.setInt(1, userId);
+                insertIntoFavourites.setInt(2, metaId);
+                insertIntoFavourites.executeUpdate();
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

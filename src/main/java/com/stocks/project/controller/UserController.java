@@ -3,7 +3,6 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.User;
-import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -111,10 +110,5 @@ public class UserController {
                     }
                     """);
         }
-    }
-
-    @GetMapping("/{userId}/fav-stocks")
-    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId) {
-        return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
     }
 }

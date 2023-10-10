@@ -1,6 +1,7 @@
 package com.stocks.project.service;
 
 import com.stocks.project.exception.NoFirstNameException;
+import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
@@ -46,5 +47,14 @@ public class UserService {
 
     public List<?> getAllFavouriteStocks(int userId) {
         return userRepository.getAllFavouriteStocks(userId);
+    }
+
+    public void addStockToFavourite(int userId, String stockName) throws NoStockWithThisNameException, NoSuchUserException {
+        userRepository.addStockToFavourite(userId, stockName);
+    }
+
+    public void deleteStockFromFavourite(int userId, String stockName)
+            throws NoStockWithThisNameException, NoSuchUserException {
+        userRepository.deleteStockFromFavourite(userId, stockName);
     }
 }
