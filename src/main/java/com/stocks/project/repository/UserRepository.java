@@ -4,6 +4,7 @@ import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.EmailStockDTO;
+import com.stocks.project.model.Role;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
@@ -167,7 +168,8 @@ public class UserRepository {
     @Transactional
     public void register(UserSecurityDTO dto) {
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
-        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email) VALUES (?, ?, ?, ?);";
+        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email, role_id) " +
+                "VALUES (?, ?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement insertUser =
@@ -192,6 +194,7 @@ public class UserRepository {
                 insertSecurityInfo.setString(2, dto.getUsername());
                 insertSecurityInfo.setString(3, passwordEncoder.encode(dto.getPassword()));
                 insertSecurityInfo.setString(4, dto.getEmail());
+                insertSecurityInfo.setInt(5, 2); // USER
                 insertSecurityInfo.executeUpdate();
                 connection.commit();
             } catch (SQLException e) {

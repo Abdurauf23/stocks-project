@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class SecurityService {
+public class SecurityInfoService {
     private final SecurityRepository securityRepository;
 
     @Autowired
-    public SecurityService(SecurityRepository securityRepository) {
+    public SecurityInfoService(SecurityRepository securityRepository) {
         this.securityRepository = securityRepository;
     }
 

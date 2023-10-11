@@ -1,5 +1,6 @@
 package com.stocks.project.utils;
 
+import com.stocks.project.model.Role;
 import com.stocks.project.model.SecurityInfo;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,8 @@ public class SecurityMapper {
                 rs.getInt("id"),
                 rs.getString("username"),
                 rs.getString("password"),
-                rs.getString("email")
+                rs.getString("email"),
+                rs.getInt("role_id") == 1? Role.ADMIN: Role.USER
         );
     }
 }
