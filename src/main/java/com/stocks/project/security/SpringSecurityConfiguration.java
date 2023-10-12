@@ -31,7 +31,11 @@ public class SpringSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST,"/authentication").permitAll()
                         .requestMatchers(HttpMethod.POST,"/register").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/users").hasRole("ADMIN")
+//                        .requestMatchers(HttpMethod.DELETE, "/users").hasRole("ADMIN")
+//                        .requestMatchers("/security-info").hasRole("USER")
+//                        .requestMatchers(HttpMethod.DELETE, "/stocks").hasRole("ADMIN")
+//                        .requestMatchers(HttpMethod.PUT, "/stocks").hasRole("ADMIN")
+//                        .requestMatchers(HttpMethod.POST, "/stocks").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 ).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

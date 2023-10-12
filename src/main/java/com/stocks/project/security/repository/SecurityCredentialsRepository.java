@@ -1,5 +1,6 @@
 package com.stocks.project.security.repository;
 
+import com.stocks.project.model.Role;
 import com.stocks.project.security.model.SecurityCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -35,7 +36,8 @@ public class SecurityCredentialsRepository {
                         resultSet.getInt("id"),
                         resultSet.getString("username"),
                         resultSet.getString("password"),
-                        resultSet.getString("email")
+                        resultSet.getString("email"),
+                        resultSet.getInt("role_id") == 1? Role.ROLE_ADMIN : Role.ROLE_USER
                 );
             }
         } catch (SQLException e) {

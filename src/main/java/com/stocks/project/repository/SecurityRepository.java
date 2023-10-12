@@ -78,7 +78,7 @@ public class SecurityRepository {
             preparedStatement.setString(3, newSecurityInfo.getPassword());
             preparedStatement.setString(4, newSecurityInfo.getEmail());
             Role role = newSecurityInfo.getRole();
-            preparedStatement.setInt(5, role == Role.ADMIN? 1 : 2);
+            preparedStatement.setInt(5, role == Role.ROLE_ADMIN ? 1 : 2);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();
@@ -94,12 +94,26 @@ public class SecurityRepository {
 
     public void delete(int userId) {
         String query = "DELETE FROM security_info WHERE id = ?;";
+        String queryDeleteFromUserTable = "DELETE FROM stocks_user WHERE id = ?;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
-                        connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+                        connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement preparedStatement2 =
+                        connection.prepareStatement(queryDeleteFromUserTable, Statement.RETURN_GENERATED_KEYS);
         ) {
-            preparedStatement.setInt(1, userId);
+            try {
+                connection.setAutoCommit(false);
+                preparedStatement.setInt(1, userId);
+                preparedStatement2.setInt(1, userId);
+
+                preparedStatement.executeUpdate();
+                preparedStatement2.executeUpdate();
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -118,7 +132,7 @@ public class SecurityRepository {
             preparedStatement.setString(2, updatedInfo.getPassword());
             preparedStatement.setString(3, updatedInfo.getUsername());
             Role role = updatedInfo.getRole();
-            preparedStatement.setInt(4, role == Role.ADMIN? 1 : 2);
+            preparedStatement.setInt(4, role == Role.ROLE_ADMIN ? 1 : 2);
             preparedStatement.setInt(5, userId);
 
             preparedStatement.executeUpdate();

@@ -31,6 +31,7 @@ public class SecurityController {
         return securityInfoService.findAll();
     }
 
+    // TODO: add 404
     @GetMapping("/{userId}")
     public SecurityInfo getById(@PathVariable int userId) {
         return securityInfoService.findById(userId);

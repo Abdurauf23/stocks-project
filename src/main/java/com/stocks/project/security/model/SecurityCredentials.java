@@ -1,5 +1,6 @@
 package com.stocks.project.security.model;
 
+import com.stocks.project.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -10,4 +11,5 @@ public class SecurityCredentials {
     private String login;
     private String password;
     private String email;
+    private Role role;
 }
