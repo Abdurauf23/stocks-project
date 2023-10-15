@@ -23,7 +23,8 @@ public class SecurityCredentialsRepository {
 
     public Optional<SecurityCredentials> findByUserLogin(String username) {
         SecurityCredentials securityCredentials = null;
-        String query = "SELECT * FROM security_info WHERE username = ? OR email = ?;";
+        String query = "SELECT * FROM security_info NATURAL JOIN stocks_user " +
+                "WHERE (username = ? OR email = ?) AND is_deleted = FALSE;";
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(query)
@@ -37,7 +38,7 @@ public class SecurityCredentialsRepository {
                         resultSet.getString("username"),
                         resultSet.getString("password"),
                         resultSet.getString("email"),
-                        resultSet.getInt("role_id") == 1? Role.ROLE_ADMIN : Role.ROLE_USER
+                        resultSet.getInt("role_id") == 1? Role.ADMIN : Role.USER
                 );
             }
         } catch (SQLException e) {

@@ -15,7 +15,7 @@ public class SecurityMapper {
                 rs.getString("username"),
                 rs.getString("password"),
                 rs.getString("email"),
-                rs.getInt("role_id") == 1? Role.ROLE_ADMIN : Role.ROLE_USER
+                rs.getInt("role_id") == 1? Role.ADMIN : Role.USER
         );
     }
 }

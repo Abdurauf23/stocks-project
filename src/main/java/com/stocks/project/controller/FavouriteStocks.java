@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users/")
+@RequestMapping("/users")
 public class FavouriteStocks {
     private final UserService userService;
 

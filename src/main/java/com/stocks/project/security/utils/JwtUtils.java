@@ -29,8 +29,8 @@ public class JwtUtils {
 
     public String generateJwtToken(String login) {
         return Jwts.builder()
-                .setSubject(login)
-                .setExpiration(new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiration)))
+                .subject(login)
+                .expiration(new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(expiration)))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 

@@ -1,12 +1,14 @@
 package com.stocks.project.service;
 
+import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.repository.SecurityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SecurityInfoService {
@@ -21,19 +23,20 @@ public class SecurityInfoService {
         return securityRepository.findAll();
     }
 
-    public SecurityInfo findById(int id) {
+    public Optional<SecurityInfo> findById(int id) {
         return securityRepository.findById(id);
     }
 
-    public SecurityInfo create(SecurityInfo securityInfo, int userId) {
+    public Optional<SecurityInfo> create(SecurityInfo securityInfo, int userId)
+            throws NoSuchUserException, NotEnoughDataException {
         return securityRepository.createSecurityInfo(securityInfo, userId);
     }
 
-    public void delete(int userId) {
+    public void delete(int userId) throws NoSuchUserException {
         securityRepository.delete(userId);
     }
 
-    public SecurityInfo update(SecurityInfo updatedInfo, int userId) {
+    public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId) throws NoSuchUserException {
         return securityRepository.update(updatedInfo, userId);
     }
 }

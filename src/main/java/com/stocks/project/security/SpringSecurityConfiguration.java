@@ -1,5 +1,6 @@
 package com.stocks.project.security;
 
+import com.stocks.project.model.Role;
 import com.stocks.project.security.filter.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -31,11 +32,14 @@ public class SpringSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST,"/authentication").permitAll()
                         .requestMatchers(HttpMethod.POST,"/register").permitAll()
-//                        .requestMatchers(HttpMethod.DELETE, "/users").hasRole("ADMIN")
-//                        .requestMatchers("/security-info").hasRole("USER")
-//                        .requestMatchers(HttpMethod.DELETE, "/stocks").hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.PUT, "/stocks").hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.POST, "/stocks").hasRole("ADMIN")
+                        .requestMatchers("/stocks").permitAll()
+
+                        .requestMatchers(HttpMethod.DELETE,"/users").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
+                        .requestMatchers(HttpMethod.PUT,"/users").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
+                        .requestMatchers(HttpMethod.POST,"/users").hasRole(Role.ADMIN.name())
+
+                        .requestMatchers("/security-info").hasRole(Role.ADMIN.name())
+
                         .anyRequest().authenticated()
                 ).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

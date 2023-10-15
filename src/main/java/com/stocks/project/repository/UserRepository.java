@@ -4,7 +4,6 @@ import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.EmailStockDTO;
-import com.stocks.project.model.Role;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
@@ -54,6 +53,56 @@ public class UserRepository {
         return users;
     }
 
+    public boolean isSamePerson(String login, int id) {
+        boolean isSame = false;
+        String query = """
+                SELECT *
+                FROM security_info
+                WHERE (email = ? OR username = ?) AND id = ?;""";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setString(1, login);
+            preparedStatement.setString(2, login);
+            preparedStatement.setInt(3, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                isSame = true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isSame;
+    }
+
+    public boolean isAdminByLogin(String login) {
+        boolean isAdmin = false;
+        String query = """
+                SELECT
+                    (CASE
+                            WHEN role_id = 1 THEN TRUE
+                            ELSE FALSE
+                    END)
+                FROM security_info
+                WHERE email = ? OR username = ?;
+                """;
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setString(1, login);
+            preparedStatement.setString(2, login);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                isAdmin = resultSet.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isAdmin;
+    }
+
     public Optional<User> findById(int id) {
         User user = null;
         String query = "SELECT * FROM stocks_user WHERE id = ?;";
@@ -98,7 +147,8 @@ public class UserRepository {
         return user;
     }
 
-    public void delete(int userId) throws NoSuchUserException {
+    @Transactional
+    public void deleteForAdmin(int userId) throws NoSuchUserException {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
@@ -122,6 +172,23 @@ public class UserRepository {
                 connection.rollback();
                 e.printStackTrace();
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteForUser(int userId) throws NoSuchUserException{
+        if (findById(userId).isEmpty()) {
+            throw new NoSuchUserException();
+        }
+        String query = "UPDATE stocks_user SET is_deleted = TRUE WHERE id = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement =
+                        connection.prepareStatement(query)
+        ) {
+            preparedStatement.setInt(1, userId);
+            preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }

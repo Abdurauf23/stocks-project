@@ -33,7 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
         String token = jwtUtils.getTokenFromHttpRequest(request);
 
         if (token != null && jwtUtils.validateToken(token)) {
@@ -45,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetails.getAuthorities()
             );
             SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
-            log.info("Authenticated user with login: " + login);
+            log.info("Authenticated user with login: " + login + ". Role: " + userDetails.getAuthorities());
         }
         filterChain.doFilter(request, response);
     }

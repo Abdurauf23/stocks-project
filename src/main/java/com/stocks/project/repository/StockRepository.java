@@ -79,7 +79,7 @@ public class StockRepository {
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement getStatement = connection.prepareStatement(getMetaIdQuery);
-                PreparedStatement insertStatement = connection.prepareStatement(insertQuery);
+                PreparedStatement insertStatement = connection.prepareStatement(insertQuery)
         ) {
             getStatement.setString(1, stockData.getMeta().getSymbol());
             ResultSet resultSet = getStatement.executeQuery();
