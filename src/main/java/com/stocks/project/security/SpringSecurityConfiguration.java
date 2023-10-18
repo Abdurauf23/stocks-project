@@ -1,6 +1,10 @@
 package com.stocks.project.security;
 
 import com.stocks.project.model.Role;
+import static com.stocks.project.model.Role.ADMIN;
+import static com.stocks.project.model.Role.USER;
+
+import com.stocks.project.model.User;
 import com.stocks.project.security.filter.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -34,11 +38,17 @@ public class SpringSecurityConfiguration {
                         .requestMatchers(HttpMethod.POST,"/register").permitAll()
                         .requestMatchers("/stocks").permitAll()
 
-                        .requestMatchers(HttpMethod.DELETE,"/users").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
-                        .requestMatchers(HttpMethod.PUT,"/users").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
-                        .requestMatchers(HttpMethod.POST,"/users").hasRole(Role.ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE,"/users").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.GET,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.PUT,"/users").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
 
-                        .requestMatchers("/security-info").hasRole(Role.ADMIN.name())
+                        .requestMatchers("/security-info").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.PUT, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.GET, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
+
+                        .requestMatchers("fav-stocks/**").hasAnyRole(ADMIN.name(), USER.name())
 
                         .anyRequest().authenticated()
                 ).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

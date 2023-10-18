@@ -28,10 +28,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<User>> getAll(Principal principal) {
-        if (!userService.isAdmin(principal.getName())){
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    public ResponseEntity<List<User>> getAll() {
         return new ResponseEntity<>(userService.findAll(), HttpStatus.OK);
     }
 
@@ -40,7 +37,7 @@ public class UserController {
         Optional<User> user = userService.findById(userId);
 
         String login = principal.getName();
-        if (userService.isAdmin(login)){
+        if (userService.isAdmin(login) || userService.isSame(login, userId)){
             if (user.isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
@@ -52,12 +49,8 @@ public class UserController {
                         """);
             }
             return new ResponseEntity<>(user.get(), HttpStatus.OK);
-        } else {
-            if (userService.isSame(login, userId)) {
-                return new ResponseEntity<>(user.get(), HttpStatus.OK);
-            }
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @PostMapping
@@ -78,20 +71,24 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId) {
-        try {
-            userService.delete(userId);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "No such user"\s
-                    }
-                    """);
+    public ResponseEntity<?> deleteUser(@PathVariable int userId, Principal principal) {
+        String login = principal.getName();
+        if (userService.isSame(login, userId) || userService.isAdmin(login)) {
+            try {
+                userService.delete(userId);
+                return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
+            } catch (NoSuchUserException e) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
+                                {
+                                    "error" : "No such user"\s
+                                }
+                                """);
+            }
         }
-        return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @PutMapping("/{userId}")
@@ -99,7 +96,7 @@ public class UserController {
                                         @PathVariable int userId,
                                         Principal principal) {
         String login = principal.getName();
-        if (userService.isAdmin(login)) {
+        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             try {
                 return new ResponseEntity<>(userService.updateUser(updatedUser, userId), HttpStatus.OK);
             } catch (NoSuchUserException e) {
@@ -112,16 +109,7 @@ public class UserController {
                         }
                         """);
             }
-        } else {
-            try {
-                if (userService.isSame(login, userId)) {
-                    return new ResponseEntity<>(
-                            userService.updateUser(updatedUser, userId), HttpStatus.OK);
-                }
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            } catch (NoSuchUserException e) {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            }
         }
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 }

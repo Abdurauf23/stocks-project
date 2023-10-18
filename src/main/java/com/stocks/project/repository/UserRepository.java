@@ -210,7 +210,8 @@ public class UserRepository {
         }
 
         Optional<User> user = Optional.empty();
-        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() WHERE id = ?;";
+        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW()," +
+                "is_deleted = ? WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -219,7 +220,8 @@ public class UserRepository {
             preparedStatement.setString(1, updatedUser.getFirstName());
             preparedStatement.setString(2, updatedUser.getSecondName());
             preparedStatement.setDate(3, updatedUser.getBirthday());
-            preparedStatement.setInt(4, userId);
+            preparedStatement.setBoolean(4, updatedUser.isDeleted());
+            preparedStatement.setInt(5, userId);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();

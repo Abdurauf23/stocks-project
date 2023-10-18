@@ -136,7 +136,7 @@ public class SecurityRepository {
         }
         SecurityInfo oldSecurityInfo = findById(userId).get();
         if (updatedInfo.getPassword() == null) {
-            updatedInfo.setPassword(oldSecurityInfo.getEmail());
+            updatedInfo.setPassword(oldSecurityInfo.getPassword());
         }
         else {
             updatedInfo.setPassword(passwordEncoder.encode(updatedInfo.getPassword()));

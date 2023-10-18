@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/fav-stocks")
 public class FavouriteStocks {
     private final UserService userService;
 
@@ -22,12 +22,12 @@ public class FavouriteStocks {
         this.userService = userService;
     }
 
-    @GetMapping("/{userId}/fav-stocks")
+    @GetMapping("/{userId}")
     public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId) {
         return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
     }
 
-    @PostMapping("/{userId}/fav-stocks/{stockName}")
+    @PostMapping("/{userId}/{stockName}")
     public ResponseEntity<?> addStockToFavourite(@PathVariable int userId,
                                                  @PathVariable String stockName) {
         try {
@@ -49,12 +49,11 @@ public class FavouriteStocks {
                     .body("""
                             {
                                 "error" : "No such user"\s
-                            }
-                            """);
+                            }""");
         }
     }
 
-    @DeleteMapping("/{userId}/fav-stocks/{stockName}")
+    @DeleteMapping("/{userId}/{stockName}")
     public ResponseEntity<?> deleteFromFavourite(@PathVariable int userId,
                                                  @PathVariable String stockName) {
         try {
@@ -80,5 +79,4 @@ public class FavouriteStocks {
                             """);
         }
     }
-
 }

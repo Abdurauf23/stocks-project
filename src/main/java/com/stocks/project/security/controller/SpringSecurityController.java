@@ -18,6 +18,7 @@ public class SpringSecurityController {
     private final SpringSecurityService springSecurityService;
     private final UserService userService;
 
+
     @Autowired
     public SpringSecurityController(SpringSecurityService springSecurityService, UserService userService) {
         this.springSecurityService = springSecurityService;
