@@ -1,5 +1,6 @@
 package com.stocks.project.security.controller;
 
+import com.stocks.project.model.Role;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.security.model.AuthRequest;
 import com.stocks.project.security.model.AuthResponse;
@@ -37,7 +38,7 @@ public class SpringSecurityController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserSecurityDTO dto) {
         try {
-            userService.register(dto);
+            userService.register(dto, Role.USER);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity

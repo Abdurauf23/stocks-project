@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/fav-stocks")
 public class FavouriteStocks {
@@ -23,13 +25,24 @@ public class FavouriteStocks {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId) {
-        return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
+    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId, Principal principal) {
+        String login = principal.getName();
+
+        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
+            return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @PostMapping("/{userId}/{stockName}")
     public ResponseEntity<?> addStockToFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName) {
+                                                 @PathVariable String stockName,
+                                                 Principal principal) {
+        String login = principal.getName();
+
+        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         try {
             userService.addStockToFavourite(userId, stockName);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -55,7 +68,13 @@ public class FavouriteStocks {
 
     @DeleteMapping("/{userId}/{stockName}")
     public ResponseEntity<?> deleteFromFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName) {
+                                                 @PathVariable String stockName,
+                                                 Principal principal) {
+        String login = principal.getName();
+
+        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         try {
             userService.deleteStockFromFavourite(userId, stockName);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

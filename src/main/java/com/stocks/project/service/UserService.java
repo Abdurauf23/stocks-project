@@ -3,6 +3,7 @@ package com.stocks.project.service;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.model.Role;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.repository.UserRepository;
@@ -47,8 +48,8 @@ public class UserService {
         return userRepository.updateUser(updatedUser, userId);
     }
 
-    public void register(UserSecurityDTO dto) {
-        userRepository.register(dto);
+    public void register(UserSecurityDTO dto, Role role) {
+        userRepository.register(dto, role);
     }
 
     public List<?> getAllFavouriteStocks(int userId) {

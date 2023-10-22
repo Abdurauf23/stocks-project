@@ -30,7 +30,7 @@ public class EmailSenderService {
         this.SUBJECT = "Daily Stocks Values";
     }
 
-    @Scheduled(cron = "10 39 8 ? * *") // sends emails at 8 am
+    @Scheduled(cron = "0 0 8 ? * *") // sends emails at 8 am
     public void sendEmail() throws JsonProcessingException {
         log.info("Starting sending emails");
 
