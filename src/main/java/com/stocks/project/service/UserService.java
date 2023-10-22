@@ -1,5 +1,6 @@
 package com.stocks.project.service;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
@@ -48,7 +49,7 @@ public class UserService {
         return userRepository.updateUser(updatedUser, userId);
     }
 
-    public void register(UserSecurityDTO dto, Role role) {
+    public void register(UserSecurityDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
         userRepository.register(dto, role);
     }
 

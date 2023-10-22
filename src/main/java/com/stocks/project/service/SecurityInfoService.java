@@ -1,5 +1,6 @@
 package com.stocks.project.service;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.SecurityInfo;
@@ -28,7 +29,7 @@ public class SecurityInfoService {
     }
 
     public Optional<SecurityInfo> create(SecurityInfo securityInfo, int userId)
-            throws NoSuchUserException, NotEnoughDataException {
+            throws NoSuchUserException, NotEnoughDataException, EmailOrUsernameIsAlreadyUsedException {
         return securityRepository.createSecurityInfo(securityInfo, userId);
     }
 
@@ -36,7 +37,8 @@ public class SecurityInfoService {
         securityRepository.delete(userId);
     }
 
-    public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId) throws NoSuchUserException {
+    public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId)
+            throws NoSuchUserException, EmailOrUsernameIsAlreadyUsedException {
         return securityRepository.update(updatedInfo, userId);
     }
 }

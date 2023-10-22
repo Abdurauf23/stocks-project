@@ -1,5 +1,6 @@
 package com.stocks.project.security.controller;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.security.model.AuthRequest;
@@ -39,14 +40,13 @@ public class SpringSecurityController {
     public ResponseEntity<?> registerUser(@RequestBody UserSecurityDTO dto) {
         try {
             userService.register(dto, Role.USER);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            
-                            """);
+            return new ResponseEntity<>(HttpStatus.CREATED);
+        } catch (EmailOrUsernameIsAlreadyUsedException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                    {
+                        "error" : "Email or username is already used"
+                    }
+                    """);
         }
     }
 }

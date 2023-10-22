@@ -1,5 +1,6 @@
 package com.stocks.project.repository;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
@@ -9,6 +10,7 @@ import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,17 +27,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+@RequiredArgsConstructor
 public class UserRepository {
     private final DataSource dataSource;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
-    public UserRepository(DataSource dataSource, UserMapper userMapper, PasswordEncoder passwordEncoder) {
-        this.dataSource = dataSource;
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
@@ -54,6 +50,24 @@ public class UserRepository {
         return users;
     }
 
+    public boolean emailOrUsernameIsUsed(String email, String username) {
+        boolean duplicate = false;
+        String checkUniqueColumns = "SELECT * FROM security_info WHERE email = ? OR username = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement checkDuplicate =
+                        connection.prepareStatement(checkUniqueColumns)
+        ) {
+            checkDuplicate.setString(1, email);
+            checkDuplicate.setString(2, username);
+            if (checkDuplicate.executeQuery().next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return duplicate;
+    }
     public boolean isSamePerson(String login, int id) {
         boolean isSame = false;
         String query = """
@@ -236,7 +250,7 @@ public class UserRepository {
     }
 
     @Transactional
-    public void register(UserSecurityDTO dto, Role role) {
+    public void register(UserSecurityDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
         String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email, role_id) " +
                 "VALUES (?, ?, ?, ?, ?);";
@@ -245,10 +259,15 @@ public class UserRepository {
                 PreparedStatement insertUser =
                         connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement insertSecurityInfo =
-                        connection.prepareStatement(queryToDeleteInfo)
+                        connection.prepareStatement(queryToDeleteInfo);
         ) {
             try {
                 connection.setAutoCommit(false);
+                // check duplicate
+                if (emailOrUsernameIsUsed(dto.getEmail(), dto.getUsername())) {
+                    throw new EmailOrUsernameIsAlreadyUsedException();
+                }
+                // create if no duplication in login details
                 insertUser.setString(1, dto.getFirstName());
                 insertUser.setString(2, dto.getSecondName());
                 insertUser.setDate(3, dto.getBirthday());

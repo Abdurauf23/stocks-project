@@ -1,11 +1,13 @@
 package com.stocks.project.repository;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.SecurityMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
@@ -64,7 +66,7 @@ public class SecurityRepository {
     }
 
     public Optional<SecurityInfo> createSecurityInfo(SecurityInfo newSecurityInfo, int userId)
-            throws NoSuchUserException, NotEnoughDataException {
+            throws NoSuchUserException, NotEnoughDataException, EmailOrUsernameIsAlreadyUsedException {
         if (findById(userId).isPresent()) {
             return Optional.empty();
         }
@@ -75,6 +77,9 @@ public class SecurityRepository {
         }
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
+        }
+        if (userRepository.emailOrUsernameIsUsed(newSecurityInfo.getEmail(), newSecurityInfo.getUsername())) {
+            throw new EmailOrUsernameIsAlreadyUsedException();
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
         String query = "INSERT INTO security_info (id, username, password, email, role_id) " +
@@ -101,6 +106,7 @@ public class SecurityRepository {
         return securityInfo;
     }
 
+    @Transactional
     public void delete(int userId) throws NoSuchUserException {
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
@@ -130,7 +136,8 @@ public class SecurityRepository {
         }
     }
 
-    public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId) throws NoSuchUserException {
+    public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId)
+            throws NoSuchUserException, EmailOrUsernameIsAlreadyUsedException {
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
@@ -150,11 +157,16 @@ public class SecurityRepository {
         if (updatedInfo.getRole() == null) {
             updatedInfo.setRole(oldSecurityInfo.getRole());
         }
-
+        if (userRepository.emailOrUsernameIsUsed(updatedInfo.getEmail(), updatedInfo.getUsername())) {
+            throw new EmailOrUsernameIsAlreadyUsedException();
+        }
         Optional<SecurityInfo> securityInfo = Optional.empty();
         String query = "UPDATE security_info SET email = ?, password = ?, username = ?, role_id = ?" +
                 " WHERE id = ?;";
-        try (Connection connection = dataSource.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement preparedStatement =
+                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+        ) {
             preparedStatement.setString(1, updatedInfo.getEmail());
             preparedStatement.setString(2, updatedInfo.getPassword());
             preparedStatement.setString(3, updatedInfo.getUsername());

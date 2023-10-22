@@ -1,5 +1,6 @@
 package com.stocks.project.controller;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.SecurityInfo;
@@ -79,6 +80,12 @@ public class SecurityController {
                         "error" : "No such user"
                     }
                     """);
+        } catch (EmailOrUsernameIsAlreadyUsedException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                    {
+                        "error" : "Email or username is already used"
+                    }
+                    """);
         }
     }
 
@@ -104,6 +111,12 @@ public class SecurityController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
                     {
                         "error" : "No such user"
+                    }
+                    """);
+        } catch (EmailOrUsernameIsAlreadyUsedException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                    {
+                        "error" : "Email or username is already used"
                     }
                     """);
         }
