@@ -1,13 +1,19 @@
 package com.stocks.project.repository;
 
+import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
+import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.EmailStockDTO;
+import com.stocks.project.model.Role;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.UserMapper;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -21,15 +27,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+@RequiredArgsConstructor
 public class UserRepository {
     private final DataSource dataSource;
     private final UserMapper userMapper;
-
-    @Autowired
-    public UserRepository(DataSource dataSource, UserMapper userMapper) {
-        this.dataSource = dataSource;
-        this.userMapper = userMapper;
-    }
+    private final PasswordEncoder passwordEncoder;
 
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
@@ -46,6 +48,74 @@ public class UserRepository {
             e.printStackTrace();
         }
         return users;
+    }
+
+    public boolean emailOrUsernameIsUsed(String email, String username) {
+        boolean duplicate = false;
+        String checkUniqueColumns = "SELECT * FROM security_info WHERE email = ? OR username = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement checkDuplicate =
+                        connection.prepareStatement(checkUniqueColumns)
+        ) {
+            checkDuplicate.setString(1, email);
+            checkDuplicate.setString(2, username);
+            if (checkDuplicate.executeQuery().next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return duplicate;
+    }
+    public boolean isSamePerson(String login, int id) {
+        boolean isSame = false;
+        String query = """
+                SELECT *
+                FROM security_info
+                WHERE (email = ? OR username = ?) AND id = ?;""";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setString(1, login);
+            preparedStatement.setString(2, login);
+            preparedStatement.setInt(3, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                isSame = true;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isSame;
+    }
+
+    public boolean isAdminByLogin(String login) {
+        boolean isAdmin = false;
+        String query = """
+                SELECT
+                    (CASE
+                            WHEN role_id = 1 THEN TRUE
+                            ELSE FALSE
+                    END)
+                FROM security_info
+                WHERE email = ? OR username = ?;
+                """;
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(query)
+        ) {
+            preparedStatement.setString(1, login);
+            preparedStatement.setString(2, login);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                isAdmin = resultSet.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return isAdmin;
     }
 
     public Optional<User> findById(int id) {
@@ -92,7 +162,8 @@ public class UserRepository {
         return user;
     }
 
-    public void delete(int userId) throws NoSuchUserException {
+    @Transactional
+    public void deleteForAdmin(int userId) throws NoSuchUserException {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
@@ -121,6 +192,23 @@ public class UserRepository {
         }
     }
 
+    public void deleteForUser(int userId) throws NoSuchUserException{
+        if (findById(userId).isEmpty()) {
+            throw new NoSuchUserException();
+        }
+        String query = "UPDATE stocks_user SET is_deleted = TRUE WHERE id = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement =
+                        connection.prepareStatement(query)
+        ) {
+            preparedStatement.setInt(1, userId);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public Optional<User> updateUser(User updatedUser, int userId) throws NoSuchUserException {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
@@ -137,7 +225,8 @@ public class UserRepository {
         }
 
         Optional<User> user = Optional.empty();
-        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() WHERE id = ?;";
+        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW()," +
+                "is_deleted = ? WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -146,7 +235,8 @@ public class UserRepository {
             preparedStatement.setString(1, updatedUser.getFirstName());
             preparedStatement.setString(2, updatedUser.getSecondName());
             preparedStatement.setDate(3, updatedUser.getBirthday());
-            preparedStatement.setInt(4, userId);
+            preparedStatement.setBoolean(4, updatedUser.isDeleted());
+            preparedStatement.setInt(5, userId);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();
@@ -159,19 +249,25 @@ public class UserRepository {
         return user;
     }
 
-    public Optional<User> register(UserSecurityDTO dto) {
-        Optional<User> user = Optional.empty();
+    @Transactional
+    public void register(UserSecurityDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
-        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email) VALUES (?, ?, ?, ?);";
+        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email, role_id) " +
+                "VALUES (?, ?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement insertUser =
                         connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement insertSecurityInfo =
-                        connection.prepareStatement(queryToDeleteInfo)
+                        connection.prepareStatement(queryToDeleteInfo);
         ) {
             try {
                 connection.setAutoCommit(false);
+                // check duplicate
+                if (emailOrUsernameIsUsed(dto.getEmail(), dto.getUsername())) {
+                    throw new EmailOrUsernameIsAlreadyUsedException();
+                }
+                // create if no duplication in login details
                 insertUser.setString(1, dto.getFirstName());
                 insertUser.setString(2, dto.getSecondName());
                 insertUser.setDate(3, dto.getBirthday());
@@ -185,8 +281,9 @@ public class UserRepository {
                 // insert new row into security_info table with userPK
                 insertSecurityInfo.setInt(1, userPK);
                 insertSecurityInfo.setString(2, dto.getUsername());
-                insertSecurityInfo.setString(3, dto.getPassword());
+                insertSecurityInfo.setString(3, passwordEncoder.encode(dto.getPassword()));
                 insertSecurityInfo.setString(4, dto.getEmail());
+                insertSecurityInfo.setInt(5, role == Role.ADMIN? 1: 2); // USER
                 insertSecurityInfo.executeUpdate();
                 connection.commit();
             } catch (SQLException e) {
@@ -196,7 +293,6 @@ public class UserRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return user;
     }
 
     public List<EmailStockDTO> getAllFavouriteStocks(int userId) {
@@ -259,4 +355,72 @@ public class UserRepository {
         return integerList;
     }
 
+    public void addStockToFavourite(int userId, String stockName) throws NoSuchUserException, NoStockWithThisNameException {
+        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
+        String addToFavQuery = "INSERT INTO stock_users_fav_stocks (user_id, meta_id) VALUES (?, ?);";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement insertIntoFavourites =
+                        connection.prepareStatement(addToFavQuery)
+        ) {
+            try {
+                connection.setAutoCommit(false);
+                if (findById(userId).isEmpty()) {
+                    throw new NoSuchUserException();
+                }
+                selectMeta.setString(1, stockName);
+                ResultSet resultSet = selectMeta.executeQuery();
+                if (!resultSet.next()) {
+                    throw new NoStockWithThisNameException();
+                }
+                int metaId = resultSet.getInt("id");
+                insertIntoFavourites.setInt(1, userId);
+                insertIntoFavourites.setInt(2, metaId);
+                insertIntoFavourites.executeUpdate();
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteStockFromFavourite(int userId, String stockName)
+            throws NoStockWithThisNameException, NoSuchUserException {
+        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
+        String deleteFromFavQuery = "DELETE FROM stock_users_fav_stocks WHERE user_id = ? AND meta_id = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement insertIntoFavourites =
+                        connection.prepareStatement(deleteFromFavQuery)
+        ) {
+            try {
+                connection.setAutoCommit(false);
+                if (findById(userId).isEmpty()) {
+                    throw new NoSuchUserException();
+                }
+                selectMeta.setString(1, stockName);
+                ResultSet resultSet = selectMeta.executeQuery();
+                if (!resultSet.next()) {
+                    throw new NoStockWithThisNameException();
+                }
+                int metaId = resultSet.getInt("id");
+                insertIntoFavourites.setInt(1, userId);
+                insertIntoFavourites.setInt(2, metaId);
+                insertIntoFavourites.executeUpdate();
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
