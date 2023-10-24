@@ -1,7 +1,14 @@
 package com.stocks.project.controller;
 
+import com.stocks.project.model.ErrorModel;
+import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.service.StockService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,16 +30,25 @@ public class StockController {
         this.stockService = stockService;
     }
 
+    @Operation(description = "Get value for {symbol}.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "404",
+                    description = "No stock with this name",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "200",
+                    description = "Get requested stock.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = StockData.class)))
+    })
     @GetMapping("/{symbol}")
     public ResponseEntity<?> getStock(@PathVariable String symbol) {
         Optional<StockData> stockData = stockService.getStock(symbol);
         if (stockData.isPresent()) {
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(stockData.get());
+            return new ResponseEntity<>(stockData.get(), HttpStatus.OK);
         }
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(HttpStatus.NOT_FOUND)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body("""
                         {
@@ -41,6 +57,13 @@ public class StockController {
                         """);
     }
 
+    @Operation(description = "List of stocks available.")
+    @ApiResponses(value = {
+           @ApiResponse(responseCode = "200",
+                    description = "Get list of stocks (JSON Array).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Meta.class)))
+    })
     @GetMapping
     public ResponseEntity<?> getAllStocks() {
         return ResponseEntity

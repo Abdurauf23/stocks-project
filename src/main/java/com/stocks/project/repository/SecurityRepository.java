@@ -5,7 +5,6 @@ import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.SecurityInfo;
-import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.utils.SecurityMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -106,31 +105,17 @@ public class SecurityRepository {
         return securityInfo;
     }
 
-    @Transactional
-    public void delete(int userId) throws NoSuchUserException {
+    public void deleteForAdmin(int userId) throws NoSuchUserException {
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
         String query = "DELETE FROM security_info WHERE id = ?;";
-        String queryDeleteFromUserTable = "DELETE FROM stocks_user WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
-                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement preparedStatement2 =
-                     connection.prepareStatement(queryDeleteFromUserTable, Statement.RETURN_GENERATED_KEYS))
-        {
-            try {
-                connection.setAutoCommit(false);
-                preparedStatement.setInt(1, userId);
-                preparedStatement2.setInt(1, userId);
-
-                preparedStatement.executeUpdate();
-                preparedStatement2.executeUpdate();
-                connection.commit();
-            } catch (SQLException e) {
-                connection.rollback();
-                e.printStackTrace();
-            }
+                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+        ) {
+            preparedStatement.setInt(1, userId);
+            preparedStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }

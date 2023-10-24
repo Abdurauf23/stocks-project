@@ -34,22 +34,33 @@ public class SpringSecurityConfiguration {
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // authentication and registration
                         .requestMatchers(HttpMethod.POST,"/authentication").permitAll()
                         .requestMatchers(HttpMethod.POST,"/register").permitAll()
-                        .requestMatchers("/stocks").permitAll()
 
-                        .requestMatchers(HttpMethod.DELETE,"/users").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
+                        // getting stocks
+                        .requestMatchers(HttpMethod.GET,"/stocks").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/stocks/**").permitAll()
+
+                        // interacting with User
                         .requestMatchers(HttpMethod.GET,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(HttpMethod.PUT,"/users").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.PUT,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.DELETE,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
 
-                        .requestMatchers("/security-info").hasRole(ADMIN.name())
+                        // interacting with security of info of the User
                         .requestMatchers("/security-info/**").hasRole(ADMIN.name())
-                        .requestMatchers(HttpMethod.PUT, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers("/security-info").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.GET, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.PUT, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
 
-                        .requestMatchers("fav-stocks/**").hasAnyRole(ADMIN.name(), USER.name())
+                        // getting, adding and deleting from the list of favourite stocks
+                        .requestMatchers("/fav-stocks/**").hasAnyRole(ADMIN.name(), USER.name())
+
+                        // related to swagger
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/**").permitAll()
 
                         .anyRequest().authenticated()
                 ).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

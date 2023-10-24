@@ -2,8 +2,14 @@ package com.stocks.project.controller;
 
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.User;
 import com.stocks.project.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,11 +33,36 @@ import java.util.Optional;
 public class UserController {
     private final UserService userService;
 
+    @Operation(description = "List of all users in DB")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "403",
+                    description = "For user: User cannot access this function.",
+                    content = @Content),
+            @ApiResponse(responseCode = "200",
+                    description = "For admin: List of all users in DB (JSON array).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = User.class))
+            )
+    })
     @GetMapping
     public ResponseEntity<List<User>> getAll() {
         return new ResponseEntity<>(userService.findAll(), HttpStatus.OK);
     }
 
+    @Operation(description = "Get user with particular ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "404",
+                    description = "For administrator: No such user in DB.",
+                    content = @Content(mediaType = "application.json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "403",
+                    description = "For user: If user wants to access another user.",
+                    content = @Content),
+            @ApiResponse(responseCode = "200",
+                    description = "If user is found in DB.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = User.class)))
+    })
     @GetMapping("/{userId}")
     public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
         Optional<User> user = userService.findById(userId);
@@ -53,6 +84,20 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
+    @Operation(description = "Creating a user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "400",
+                    description = "For administrator: User should have first name.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "403",
+                    description = "For user: If user wants to create.",
+                    content = @Content),
+            @ApiResponse(responseCode = "201",
+                    description = "For admin: User is successfully created in DB ",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = User.class)))
+    })
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody User newUser) {
         try {
@@ -70,13 +115,26 @@ public class UserController {
         }
     }
 
+    @Operation(description = "Deleting a User")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "404",
+                    description = "For administrator: No such user.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "403",
+                    description = "For user: If user wants to delete another user.",
+                    content = @Content),
+            @ApiResponse(responseCode = "204",
+                    description = "User is successfully deleted",
+                    content = @Content)
+    })
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable int userId, Principal principal) {
         String login = principal.getName();
         if (userService.isSame(login, userId) || userService.isAdmin(login)) {
             try {
                 userService.delete(userId);
-                return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } catch (NoSuchUserException e) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
@@ -91,6 +149,20 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
+    @Operation(description = "Update a user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "404",
+                    description = "For administrator: No such user.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "403",
+                    description = "For user: If user wants to PUT for another user.",
+                    content = @Content),
+            @ApiResponse(responseCode = "200",
+                    description = "User is successfully changed",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = User.class)))
+    })
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUser(@RequestBody User updatedUser,
                                         @PathVariable int userId,
