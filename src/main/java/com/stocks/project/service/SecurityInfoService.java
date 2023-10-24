@@ -5,20 +5,19 @@ import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.repository.SecurityRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.stocks.project.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class SecurityInfoService {
     private final SecurityRepository securityRepository;
-
-    @Autowired
-    public SecurityInfoService(SecurityRepository securityRepository) {
-        this.securityRepository = securityRepository;
-    }
+    private final UserRepository userRepository;
 
     public List<SecurityInfo> findAll() {
         return securityRepository.findAll();
@@ -34,7 +33,7 @@ public class SecurityInfoService {
     }
 
     public void delete(int userId) throws NoSuchUserException {
-        securityRepository.delete(userId);
+        securityRepository.deleteForAdmin(userId);
     }
 
     public Optional<SecurityInfo> update(SecurityInfo updatedInfo, int userId)

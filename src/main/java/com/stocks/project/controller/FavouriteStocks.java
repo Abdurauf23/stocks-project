@@ -2,7 +2,16 @@ package com.stocks.project.controller;
 
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.model.ErrorModel;
+import com.stocks.project.model.StockData;
+import com.stocks.project.model.StockValue;
 import com.stocks.project.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +26,7 @@ import java.security.Principal;
 
 @RestController
 @RequestMapping("/fav-stocks")
+@SecurityRequirement(name = "Bearer Authentication")
 public class FavouriteStocks {
     private final UserService userService;
 
@@ -24,6 +34,17 @@ public class FavouriteStocks {
         this.userService = userService;
     }
 
+    @Operation(description = "Get favorite stocks for particular user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "403",
+                    description = "For User: If user wants to see others favourite stocks",
+                    content = @Content),
+            @ApiResponse(responseCode = "200",
+                    description = "For Admin and User: Admin can access anyone. " +
+                            "User can access only his fav stocks.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = StockValue.class)))
+    })
     @GetMapping("/{userId}")
     public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId, Principal principal) {
         String login = principal.getName();
@@ -34,6 +55,20 @@ public class FavouriteStocks {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
+    @Operation(description = "Add stocks to favourite.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "403",
+                    description = "For User: If user wants to add fav stock for other user",
+                    content = @Content),
+            @ApiResponse(responseCode = "404",
+                    description = "For Admin: If user was not found in the database. Or also " +
+                            "For Admin and User: If stock with provided name was not found",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "200",
+                    description = "For Admin and User: Successfully added stock to the list of fav. ",
+                    content = @Content)
+    })
     @PostMapping("/{userId}/{stockName}")
     public ResponseEntity<?> addStockToFavourite(@PathVariable int userId,
                                                  @PathVariable String stockName,
@@ -66,6 +101,20 @@ public class FavouriteStocks {
         }
     }
 
+    @Operation(description = "Delete stock from the list of favourites.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "403",
+                    description = "For User: If user wants to delete fav stock for other user",
+                    content = @Content),
+            @ApiResponse(responseCode = "404",
+                    description = "For Admin: If user was not found in the database. Or also " +
+                            "For Admin and User: If stock with provided name was not found",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorModel.class))),
+            @ApiResponse(responseCode = "204",
+                    description = "For Admin and User: Successfully deleted stock from the list of fav. ",
+                    content = @Content)
+    })
     @DeleteMapping("/{userId}/{stockName}")
     public ResponseEntity<?> deleteFromFavourite(@PathVariable int userId,
                                                  @PathVariable String stockName,
