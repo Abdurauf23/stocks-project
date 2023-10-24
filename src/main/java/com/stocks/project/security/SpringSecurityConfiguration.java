@@ -1,11 +1,11 @@
 package com.stocks.project.security;
 
-import com.stocks.project.model.Role;
 import static com.stocks.project.model.Role.ADMIN;
 import static com.stocks.project.model.Role.USER;
 
-import com.stocks.project.model.User;
 import com.stocks.project.security.filter.JwtAuthenticationFilter;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +21,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@SecurityScheme(
+        name = "Bearer Authentication",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer"
+)
 public class SpringSecurityConfiguration {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -43,15 +49,16 @@ public class SpringSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET,"/stocks/**").permitAll()
 
                         // interacting with User
+                        .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.GET,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(HttpMethod.PUT,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(HttpMethod.DELETE,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
-                        .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
 
-                        // interacting with security of info of the User
-                        .requestMatchers("/security-info/**").hasRole(ADMIN.name())
-                        .requestMatchers("/security-info").hasRole(ADMIN.name())
+                        // interacting with security info of the User
+                        .requestMatchers(HttpMethod.GET,"/security-info").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE,"/security-info/**").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.POST,"/security-info/**").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.GET, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(HttpMethod.PUT, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
 

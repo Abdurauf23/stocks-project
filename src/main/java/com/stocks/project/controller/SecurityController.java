@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,6 +34,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/security-info")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
 public class SecurityController {
     private final SecurityInfoService securityInfoService;
     private final UserService userService;
