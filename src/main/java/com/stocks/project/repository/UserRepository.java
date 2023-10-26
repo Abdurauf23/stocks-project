@@ -12,7 +12,6 @@ import com.stocks.project.utils.UserMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.misc.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
@@ -68,6 +67,7 @@ public class UserRepository {
         }
         return duplicate;
     }
+
     public boolean isSamePerson(String login, int id) {
         boolean isSame = false;
         String query = """
@@ -137,7 +137,7 @@ public class UserRepository {
     }
 
     public Optional<User> createUser(User newUser) throws NoFirstNameException {
-        if (newUser.getFirstName() == null) {
+        if (newUser.getFirstName() == null || newUser.getFirstName().isEmpty()) {
             throw new NoFirstNameException("Column 'first_name' is required to create a user.");
         }
         Optional<User> user = Optional.empty();

@@ -1,12 +1,14 @@
 package com.stocks.project.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import java.sql.Date;
 import java.sql.Timestamp;
 
 @AllArgsConstructor
 @Data
+@Builder
 public class User {
     private int userId;
     private String firstName;
