@@ -2,18 +2,24 @@ package com.stocks.project.repository;
 
 import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
+import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
+import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.exception.StockWithThisNameAlreadyExistsException;
+import com.stocks.project.model.Meta;
 import com.stocks.project.model.Role;
+import com.stocks.project.model.StockData;
+import com.stocks.project.model.StockValue;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,18 +31,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
-@Slf4j
 public class UserRepositoryTest {
     private final UserRepository userRepository;
     private final SecurityRepository securityRepository;
+    private final StockRepository stockRepository;
     private final SecurityCredentialsRepository credentialsRepository;
 
     @Autowired
     public UserRepositoryTest(UserRepository userRepository,
                               SecurityRepository securityRepository,
-                              SecurityCredentialsRepository credentialsRepository) {
+                              StockRepository stockRepository, SecurityCredentialsRepository credentialsRepository) {
         this.userRepository = userRepository;
         this.securityRepository = securityRepository;
+        this.stockRepository = stockRepository;
         this.credentialsRepository = credentialsRepository;
     }
 
@@ -44,8 +51,8 @@ public class UserRepositoryTest {
     public void testGetAll() throws NoFirstNameException {
         // insert users
         for (int i = 0; i < 3; i++) {
-            User user = new User(i + 1, "First Name" + i, "Second Name" + i,
-                    null, null, null, false);
+            User user = User.builder().firstName("First Name " + i)
+                    .secondName("Second name " + i).build();
             userRepository.createUser(user);
         }
 
@@ -152,9 +159,9 @@ public class UserRepositoryTest {
     @Test
     public void testGetById() throws NoFirstNameException, NoSuchUserException {
         // create user
-        Optional<User> user = userRepository.createUser(new User(
-                1, "FN", "SN", null, null, null, false
-        ));
+        Optional<User> user = userRepository.createUser(
+                User.builder().firstName("FN").secondName("SN").build()
+        );
 
         // test for creation
         assertTrue(user.isPresent(), "Not created user in DB");
@@ -218,7 +225,122 @@ public class UserRepositoryTest {
     }
 
     @Test
-    public void testUpdatingUser() {
+    public void testUpdatingUser() throws NoFirstNameException, NoSuchUserException {
+        // create user in DB
+        String firstName = "Kahn", secondName = "Shao";
+        User user  = User.builder().firstName(firstName).secondName(secondName).build();
+        Optional<User> userFromDB = userRepository.createUser(user);
 
+        // get user from DB check fist name and second name
+        assertTrue(userFromDB.isPresent());
+        int id = userFromDB.get().getUserId();
+        assertEquals(firstName, userFromDB.get().getFirstName());
+        assertEquals(secondName, userFromDB.get().getSecondName());
+
+        // update user's first name and second name
+        String newFirstName = "Kung", newSecondName = "Lao";
+        User updatedUser = User.builder().firstName(newFirstName).secondName(newSecondName).build();
+        userRepository.updateUser(updatedUser, userFromDB.get().getUserId());
+
+        // check if name has changed
+        Optional<User> updatedUserFromDB = userRepository.findById(id);
+        assertTrue(updatedUserFromDB.isPresent());
+        assertNotEquals(firstName, updatedUserFromDB.get().getFirstName());
+        assertNotEquals(secondName, updatedUserFromDB.get().getSecondName());
+        assertEquals(newFirstName, updatedUserFromDB.get().getFirstName());
+        assertEquals(newSecondName, updatedUserFromDB.get().getSecondName());
+
+        // delete user from DD
+        userRepository.deleteForAdmin(updatedUserFromDB.get().getUserId());
+    }
+
+    @Test
+    public void testRegistration() throws EmailOrUsernameIsAlreadyUsedException, NoSuchUserException {
+        // register User
+        String email = "scorpion@mortal.kombat";
+        UserSecurityDTO dto = UserSecurityDTO.builder()
+                .firstName("Scorpion")
+                .email(email)
+                .username("ScorpioN")
+                .password("1234")
+                .build();
+        userRepository.register(dto, Role.USER);
+        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(email);
+
+        // check if it has appeared in both stock_user and security_info tables
+        assertTrue(byUserLogin.isPresent());
+        int id = byUserLogin.get().getId();
+        assertNotNull(userRepository.findById(id).get());
+        assertNotNull(securityRepository.findById(id).get());
+
+        // delete user
+        userRepository.deleteForAdmin(id);
+    }
+
+    @Test
+    public void testFavouriteStocksOperations() throws NoFirstNameException,
+            StockWithThisNameAlreadyExistsException, NoStockWithThisNameException,
+            NoSuchUserException, NoStockMetaDataForThisSymbol {
+        // create user
+        User user = User.builder().firstName("Kitana").build();
+        Optional<User> userFromDB = userRepository.createUser(user);
+
+        // add some stocks to the database
+        Meta appleMeta = Meta.builder()
+                .symbol("AAPL")
+                .exchangeTimezone("Asia/Tashkent")
+                .currency("USD")
+                .build();
+        Meta googleMeta = Meta.builder()
+                .symbol("GOOGL")
+                .exchangeTimezone("Asia/Tashkent")
+                .currency("EUR")
+                .build();
+        stockRepository.addStockMeta(appleMeta);
+        stockRepository.addStockMeta(googleMeta);
+        assertEquals(2, stockRepository.findAllMeta().size());
+
+        // add some stocks to favourite
+        assertTrue(userFromDB.isPresent());
+        int id = userFromDB.get().getUserId();
+
+        userRepository.addStockToFavourite(id, "AAPL");
+        userRepository.addStockToFavourite(id, "GOOGL");
+
+        // add stock data
+        StockData appleStockData = new StockData(
+                appleMeta,
+                List.of(new StockValue(
+                        "2023-10-10 10:10:10",
+                        100, 105, 103, 100, 15
+                )),
+                "ok"
+        );
+        StockData googleStockData = new StockData(
+                googleMeta,
+                List.of(new StockValue(
+                        "2023-10-10 10:10:10",
+                        100, 105, 103, 100, 15
+                )),
+                "ok"
+        );
+        stockRepository.addStockData(appleStockData);
+        stockRepository.addStockData(googleStockData);
+
+        // check if they are added
+        int numOfFavStocks = userRepository.getAllFavouriteStocks(id).size();
+        assertEquals(2, numOfFavStocks);
+
+        // delete user and stocks from DB
+        userRepository.deleteStockFromFavourite(id, "AAPL");
+        numOfFavStocks = userRepository.getAllFavouriteStocks(id).size();
+        assertEquals(1, numOfFavStocks);
+
+        userRepository.deleteForAdmin(id);
+        stockRepository.deleteMeta("AAPL");
+        stockRepository.deleteMeta("GOOGL");
+
+        assertTrue(userRepository.findById(id).isEmpty());
+        assertTrue(stockRepository.findAllMeta().isEmpty());
     }
 }

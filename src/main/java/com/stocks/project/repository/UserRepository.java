@@ -355,7 +355,7 @@ public class UserRepository {
         return integerList;
     }
 
-    public void addStockToFavourite(int userId, String stockName) throws NoSuchUserException, NoStockWithThisNameException {
+    public void addStockToFavourite(int userId, String symbol) throws NoSuchUserException, NoStockWithThisNameException {
         String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
         String addToFavQuery = "INSERT INTO stock_users_fav_stocks (user_id, meta_id) VALUES (?, ?);";
         try (
@@ -369,7 +369,7 @@ public class UserRepository {
                 if (findById(userId).isEmpty()) {
                     throw new NoSuchUserException();
                 }
-                selectMeta.setString(1, stockName);
+                selectMeta.setString(1, symbol);
                 ResultSet resultSet = selectMeta.executeQuery();
                 if (!resultSet.next()) {
                     throw new NoStockWithThisNameException();
