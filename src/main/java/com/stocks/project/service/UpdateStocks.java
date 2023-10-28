@@ -1,6 +1,7 @@
 package com.stocks.project.service;
 
 import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
+import com.stocks.project.exception.StockWithThisNameAlreadyExistsException;
 import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.repository.StockRepository;
@@ -32,11 +33,16 @@ public class UpdateStocks {
 
     @Scheduled(cron = "1 0 0 ? * *") // updates at first second of the day
     public void updateStocksDate() {
+        boolean empty = false;
         long start = System.currentTimeMillis();
         log.info("Updating db started!");
 
-        // "AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META", "TSM"
+        // "AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META"
         List<String> symbols = stockRepository.findAllMeta().stream().map(Meta::getSymbol).toList();
+        if (symbols.isEmpty()) {
+            symbols = List.of("AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META");
+            empty = true;
+        }
 
         for (String symbol : symbols) {
             String uri = BASE_URL + "/time_series?" +
@@ -47,11 +53,16 @@ public class UpdateStocks {
                     "&apikey=" + API_KEY;
             StockData stockData = restTemplate.getForObject(uri, StockData.class);
             try {
+                if (empty) {
+                    Meta meta = stockData.getMeta();
+                    meta.setMicCode("XNGS");
+                    meta.setExchangeTimezone("Asia/Tashkent");
+                    stockRepository.addStockMeta(stockData.getMeta());
+                }
                 stockRepository.addStockData(stockData);
-            } catch (NoStockMetaDataForThisSymbol e) {
+            } catch (NoStockMetaDataForThisSymbol | StockWithThisNameAlreadyExistsException e) {
                 e.printStackTrace();
             }
-            System.out.println(stockData);
         }
 
         log.info("Updating ended. Time took: " + (System.currentTimeMillis() - start));
