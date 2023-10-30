@@ -1,8 +1,8 @@
 package com.stocks.project.controller;
 
 import com.stocks.project.model.Meta;
-import com.stocks.project.repository.StockRepository;
-import io.jsonwebtoken.lang.Assert;
+import com.stocks.project.model.StockData;
+import com.stocks.project.service.StockService;
 import org.json.JSONArray;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -15,9 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,12 +30,12 @@ public class StockControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private StockRepository stockRepository;
+    private StockService stockService;
 
     @Test
     public void testGetAllStocks() throws Exception {
         List<Meta> metaList = List.of(new Meta(), new Meta());
-        given(stockRepository.findAllMeta())
+        given(stockService.getAllMeta())
                 .willReturn(metaList);
 
         String body = this.mockMvc
@@ -53,8 +53,11 @@ public class StockControllerTest {
     }
 
     @Test
-    public void testGetStockBySymbol() throws Exception {
+    public void testGetStockBySymbolFound() throws Exception {
         String symbol = "AAPL";
+        given(stockService.getStock(symbol))
+                .willReturn(Optional.of(new StockData()));
+
         MvcResult mvcResult = this.mockMvc
                 .perform(MockMvcRequestBuilders
                         .get("/stocks/" + symbol)
@@ -62,5 +65,16 @@ public class StockControllerTest {
                 .andReturn();
 
         Assertions.assertEquals(HttpStatus.OK.value(), mvcResult.getResponse().getStatus());
+    }
+
+    @Test
+    public void testGetStockBySymbolNotFound() throws Exception {
+        MvcResult mvcResult = this.mockMvc
+                .perform(MockMvcRequestBuilders
+                        .get("/stocks/" + "SOME_SYMBOL")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        Assertions.assertEquals(HttpStatus.NOT_FOUND.value(), mvcResult.getResponse().getStatus());
     }
 }
