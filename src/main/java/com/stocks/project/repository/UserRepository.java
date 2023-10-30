@@ -12,7 +12,6 @@ import com.stocks.project.utils.UserMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.misc.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
@@ -68,6 +67,7 @@ public class UserRepository {
         }
         return duplicate;
     }
+
     public boolean isSamePerson(String login, int id) {
         boolean isSame = false;
         String query = """
@@ -137,7 +137,7 @@ public class UserRepository {
     }
 
     public Optional<User> createUser(User newUser) throws NoFirstNameException {
-        if (newUser.getFirstName() == null) {
+        if (newUser.getFirstName() == null || newUser.getFirstName().isEmpty()) {
             throw new NoFirstNameException("Column 'first_name' is required to create a user.");
         }
         Optional<User> user = Optional.empty();
@@ -355,7 +355,7 @@ public class UserRepository {
         return integerList;
     }
 
-    public void addStockToFavourite(int userId, String stockName) throws NoSuchUserException, NoStockWithThisNameException {
+    public void addStockToFavourite(int userId, String symbol) throws NoSuchUserException, NoStockWithThisNameException {
         String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
         String addToFavQuery = "INSERT INTO stock_users_fav_stocks (user_id, meta_id) VALUES (?, ?);";
         try (
@@ -369,7 +369,7 @@ public class UserRepository {
                 if (findById(userId).isEmpty()) {
                     throw new NoSuchUserException();
                 }
-                selectMeta.setString(1, stockName);
+                selectMeta.setString(1, symbol);
                 ResultSet resultSet = selectMeta.executeQuery();
                 if (!resultSet.next()) {
                     throw new NoStockWithThisNameException();

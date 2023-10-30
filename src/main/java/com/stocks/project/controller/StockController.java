@@ -68,8 +68,6 @@ public class StockController {
     })
     @GetMapping
     public ResponseEntity<?> getAllStocks() {
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(stockService.getAllMeta());
+        return new ResponseEntity<>(stockService.getAllMeta(), HttpStatus.OK);
     }
 }

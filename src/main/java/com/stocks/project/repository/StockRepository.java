@@ -1,6 +1,7 @@
 package com.stocks.project.repository;
 
 import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
+import com.stocks.project.exception.StockWithThisNameAlreadyExistsException;
 import com.stocks.project.model.Meta;
 import com.stocks.project.model.StockData;
 import com.stocks.project.model.StockValue;
@@ -71,7 +72,6 @@ public class StockRepository {
         return list;
     }
 
-
     public void addStockData(StockData stockData) throws NoStockMetaDataForThisSymbol {
         String getMetaIdQuery = "SELECT id FROM stock_meta WHERE symbol = ?;";
         String insertQuery = "INSERT INTO stock_value (meta_id, date_time, open, high, low, close, volume) " +
@@ -100,6 +100,47 @@ public class StockRepository {
                 }
                 insertStatement.executeBatch();
             } else throw new NoStockMetaDataForThisSymbol();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addStockMeta(Meta meta) throws StockWithThisNameAlreadyExistsException {
+        // stocks with this name already exists
+        if (findAllMeta().stream()
+                .anyMatch(m -> m.getSymbol().equals(meta.getSymbol()))
+        ) {
+            throw new StockWithThisNameAlreadyExistsException();
+        }
+        String query = "INSERT INTO stock_meta (symbol, data_interval, currency, exchange_timezone, exchange, mic_code, type_, stock_status) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(query)
+        ) {
+            statement.setString(1, meta.getSymbol());
+            statement.setString(2, meta.getInterval());
+            statement.setString(3, meta.getCurrency());
+            statement.setString(4, meta.getExchangeTimezone());
+            statement.setString(5, meta.getExchange());
+            statement.setString(6, meta.getMicCode());
+            statement.setString(7, meta.getType());
+            statement.setString(8, "ok");
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteMeta(String symbol) {
+        String query = "DELETE FROM stock_meta WHERE symbol = ?;";
+        try (
+                Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(query)
+        ) {
+            statement.setString(1, symbol);
+            statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
