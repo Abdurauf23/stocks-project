@@ -5,6 +5,7 @@ import com.stocks.project.model.Role;
 import com.stocks.project.model.User;
 import com.stocks.project.model.UserSecurityDTO;
 import com.stocks.project.repository.UserRepository;
+import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class CreateAdminIfNo {
         String username = "admin";
 
         if (credentialsRepository.findByUserLogin(username).isPresent()) {
+            log.info("Admin with username 'admin' has been found");
             return Optional.empty();
         }
         log.info("No default admin has been found in the database");
@@ -46,8 +48,14 @@ public class CreateAdminIfNo {
                         .build(),
                 Role.ADMIN
         );
-        log.info("Admin has been created with username: '" + username + "' and password: '" + password + "'");
-        int id = credentialsRepository.findByUserLogin(username).get().getId();
-        return userRepository.findById(id);
+        log.info("Admin has been created with username: " + username);
+
+        Optional<SecurityCredentials> user = credentialsRepository.findByUserLogin(username);
+        if (user.isPresent()) {
+            return userRepository.findById(user.get().getId());
+        }
+        else {
+            return Optional.empty();
+        }
     }
 }
