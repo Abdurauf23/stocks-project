@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @NoArgsConstructor
-public class Meta {
+public class StockMetaData {
     private String symbol;
     private String interval;
     private String currency;

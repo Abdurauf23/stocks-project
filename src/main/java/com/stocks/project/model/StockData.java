@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class StockData {
-    private Meta meta;
+    private StockMetaData stockMetaData;
     private List<StockValue> values;
     private String status;
 }

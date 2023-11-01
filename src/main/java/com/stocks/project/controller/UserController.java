@@ -3,7 +3,7 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
-import com.stocks.project.model.User;
+import com.stocks.project.model.StockUser;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,10 +30,14 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
-@RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
     private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @Operation(description = "List of all users in DB")
     @ApiResponses(value = {
@@ -43,18 +47,18 @@ public class UserController {
             @ApiResponse(responseCode = "200",
                     description = "For admin: List of all users in DB (JSON array).",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = User.class))
+                            schema = @Schema(implementation = StockUser.class))
             )
     })
     @GetMapping
-    public ResponseEntity<List<User>> getAll() {
+    public ResponseEntity<List<StockUser>> getAll() {
         return new ResponseEntity<>(userService.findAll(), HttpStatus.OK);
     }
 
     @Operation(description = "Get user with particular ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such user in DB.",
+                    description = "For administrator: No such stockUser in DB.",
                     content = @Content(mediaType = "application.json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -63,15 +67,15 @@ public class UserController {
             @ApiResponse(responseCode = "200",
                     description = "If user is found in DB.",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = User.class)))
+                            schema = @Schema(implementation = StockUser.class)))
     })
     @GetMapping("/{userId}")
     public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
-        Optional<User> user = userService.findById(userId);
+        Optional<StockUser> stockUser = userService.findById(userId);
 
         String login = principal.getName();
         if (userService.isAdmin(login) || userService.isSame(login, userId)){
-            if (user.isEmpty()) {
+            if (stockUser.isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,7 +85,7 @@ public class UserController {
                         }
                         """);
             }
-            return new ResponseEntity<>(user.get(), HttpStatus.OK);
+            return new ResponseEntity<>(stockUser.get(), HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
@@ -98,13 +102,16 @@ public class UserController {
             @ApiResponse(responseCode = "201",
                     description = "For admin: User is successfully created in DB ",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = User.class)))
+                            schema = @Schema(implementation = StockUser.class)))
     })
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User newUser) {
+    public ResponseEntity<?> createUser(@RequestBody StockUser newStockUser) {
         try {
-            Optional<User> user = userService.createUser(newUser);
-            return new ResponseEntity<>(user.get(), HttpStatus.CREATED);
+            Optional<StockUser> stockUser = userService.createUser(newStockUser);
+            if (stockUser.isPresent()) {
+                return new ResponseEntity<>(stockUser.get(), HttpStatus.CREATED);
+            }
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         } catch (NoFirstNameException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -163,16 +170,16 @@ public class UserController {
             @ApiResponse(responseCode = "200",
                     description = "User is successfully changed",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = User.class)))
+                            schema = @Schema(implementation = StockUser.class)))
     })
     @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@RequestBody User updatedUser,
+    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser,
                                         @PathVariable int userId,
                                         Principal principal) {
         String login = principal.getName();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             try {
-                return new ResponseEntity<>(userService.updateUser(updatedUser, userId), HttpStatus.OK);
+                return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
             } catch (NoSuchUserException e) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)

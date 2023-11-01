@@ -3,18 +3,17 @@ package com.stocks.project.model;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+
 import java.sql.Date;
-import java.sql.Timestamp;
 
 @AllArgsConstructor
 @Data
 @Builder
-public class User {
-    private int userId;
+public class UserRegistrationDTO {
     private String firstName;
     private String secondName;
+    private String email;
+    private String username;
+    private String password;
     private Date birthday;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
-    private boolean isDeleted;
 }

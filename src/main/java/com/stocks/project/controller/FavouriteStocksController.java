@@ -3,7 +3,6 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
-import com.stocks.project.model.StockData;
 import com.stocks.project.model.StockValue;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,17 +27,18 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/fav-stocks")
 @SecurityRequirement(name = "Bearer Authentication")
-public class FavouriteStocks {
+public class FavouriteStocksController {
     private final UserService userService;
 
-    public FavouriteStocks(UserService userService) {
+    @Autowired
+    public FavouriteStocksController(UserService userService) {
         this.userService = userService;
     }
 
-    @Operation(description = "Get favorite stocks for particular user.")
+    @Operation(description = "Get favorite stocks for particular stockUser.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "403",
-                    description = "For User: If user wants to see others favourite stocks",
+                    description = "For User: If stockUser wants to see others favourite stocks",
                     content = @Content),
             @ApiResponse(responseCode = "200",
                     description = "For Admin and User: Admin can access anyone. " +
@@ -80,7 +81,7 @@ public class FavouriteStocks {
         }
         try {
             userService.addStockToFavourite(userId, stockName);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (NoStockWithThisNameException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
