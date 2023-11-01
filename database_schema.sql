@@ -74,3 +74,6 @@ CREATE TABLE stock_users_fav_stocks
     PRIMARY KEY (user_id, meta_id)
 );
 
+INSERT INTO role (role_id, role_name)
+VALUES (1, 'ADMIN'),
+       (2, 'USER');

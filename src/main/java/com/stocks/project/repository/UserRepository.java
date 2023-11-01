@@ -4,6 +4,7 @@ import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.EmailStockDTO;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.StockUser;
@@ -233,8 +234,8 @@ public class UserRepository {
         }
 
         Optional<StockUser> user = Optional.empty();
-        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW()," +
-                "is_deleted = ? WHERE id = ?;";
+        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() " +
+                "WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
@@ -243,8 +244,7 @@ public class UserRepository {
             preparedStatement.setString(1, updatedStockUser.getFirstName());
             preparedStatement.setString(2, updatedStockUser.getSecondName());
             preparedStatement.setDate(3, updatedStockUser.getBirthday());
-            preparedStatement.setBoolean(4, updatedStockUser.isDeleted());
-            preparedStatement.setInt(5, userId);
+            preparedStatement.setInt(4, userId);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();
@@ -258,7 +258,8 @@ public class UserRepository {
     }
 
     @Transactional
-    public void register(UserRegistrationDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
+    public void register(UserRegistrationDTO dto, Role role)
+            throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
         String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
         String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email, role_id) " +
                 "VALUES (?, ?, ?, ?, ?);";
@@ -297,6 +298,7 @@ public class UserRepository {
             } catch (SQLException e) {
                 connection.rollback();
                 log.error(e.getMessage());
+                throw new NotEnoughDataException();
             }
         } catch (SQLException e) {
             log.error(e.getMessage());

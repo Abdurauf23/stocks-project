@@ -37,7 +37,8 @@ public class SecurityInfoController {
     private final SecurityInfoService securityInfoService;
     private final UserService userService;
 
-    public SecurityInfoController(SecurityInfoService securityInfoService, UserService userService) {
+    public SecurityInfoController(SecurityInfoService securityInfoService,
+                                  UserService userService) {
         this.securityInfoService = securityInfoService;
         this.userService = userService;
     }
@@ -111,12 +112,16 @@ public class SecurityInfoController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
-    @PostMapping("/{userId}")
-    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo, @PathVariable int userId) {
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo) {
         try {
+            int userId = newSecurityInfo.getUserId();
             Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
             if (securityInfo.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                         {
                             "error" : "Bad request"
                         }
@@ -124,13 +129,19 @@ public class SecurityInfoController {
             }
             return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
         } catch (NotEnoughDataException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error":"Not enough data"
                     }
                     """);
         } catch (NoSuchUserException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error" : "No such user"
                     }
@@ -162,7 +173,10 @@ public class SecurityInfoController {
         try {
             securityInfoService.delete(userId);
         } catch (NoSuchUserException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error" : "No such user"
                     }
@@ -189,22 +203,28 @@ public class SecurityInfoController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
-    @PutMapping("/{userId}")
+    @PutMapping
     public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo,
-                                    @PathVariable int userId,
                                     Principal principal) {
         String login = principal.getName();
+        int userId = updatedInfo.getUserId();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             try {
                 return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
             } catch (NoSuchUserException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                     {
                         "error" : "No such user"
                     }
                     """);
             } catch (EmailOrUsernameIsAlreadyUsedException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                     {
                         "error" : "Email or username is already used"
                     }

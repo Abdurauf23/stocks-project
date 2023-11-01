@@ -1,16 +1,283 @@
 openapi: 3.0.1
 info:
-  title: Title
-  description: Some description
-  version: "1.1"
+  title: OpenAPI definition
+  version: v0
 servers:
   - url: http://localhost:8080
     description: Generated server url
 paths:
+  /users:
+    get:
+      tags:
+        - user-controller
+      description: List of all users in DB
+      operationId: getAll
+      responses:
+        "403":
+          description: "For user: User cannot access this function."
+        "200":
+          description: "For admin: List of all users in DB (JSON array)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockUser'
+      security:
+        - Bearer Authentication: []
+    put:
+      tags:
+        - user-controller
+      description: Update a user
+      operationId: updateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockUser'
+        required: true
+      responses:
+        "200":
+          description: User is successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockUser'
+        "403":
+          description: "For user: If user wants to PUT for another user."
+        "404":
+          description: "For administrator: No such user."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      security:
+        - Bearer Authentication: []
+    post:
+      tags:
+        - user-controller
+      description: Creating a user
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockUser'
+        required: true
+      responses:
+        "201":
+          description: "For admin: User is successfully created in DB "
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockUser'
+        "403":
+          description: "For user: If user wants to create."
+        "400":
+          description: "For administrator: User should have first name."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      security:
+        - Bearer Authentication: []
+  /security-info:
+    get:
+      tags:
+        - security-info-controller
+      description: List of all users security info in DB
+      operationId: getAll_1
+      responses:
+        "200":
+          description: "For admin: List of all users in DB (JSON array)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockUser'
+        "403":
+          description: "For user: User cannot see all security info."
+      security:
+        - Bearer Authentication: []
+    put:
+      tags:
+        - security-info-controller
+      description: Update security info for user.
+      operationId: update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityInfo'
+        required: true
+      responses:
+        "400":
+          description: Email or username is already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        "403":
+          description: "For user: If user wants to update another users security info."
+        "404":
+          description: "For administrator: No such user."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        "200":
+          description: Users security info is successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityInfo'
+      security:
+        - Bearer Authentication: []
+    post:
+      tags:
+        - security-info-controller
+      description: Creating a user
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityInfo'
+        required: true
+      responses:
+        "400":
+          description: Not enough data for registration OR Email or username is already
+            used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        "403":
+          description: "For user: If user wants to create."
+        "201":
+          description: Security info is successfully created in DB.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityInfo'
+        "404":
+          description: No User with this ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      security:
+        - Bearer Authentication: []
+  /register:
+    post:
+      tags:
+        - spring-security-controller
+      description: Registration
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationDTO'
+        required: true
+      responses:
+        "400":
+          description: Email or username is already used
+        "201":
+          description: Successfully registered.
+  /fav-stocks:
+    get:
+      tags:
+        - favourite-stocks-controller
+      description: Get favorite stocks for particular stockUser.
+      operationId: getFavouriteStocks
+      responses:
+        "403":
+          description: "For User: If stockUser wants to see others favourite stocks"
+        "200":
+          description: "For Admin and User: Admin can access anyone. User can access\
+            \ only his fav stocks."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockValue'
+      security:
+        - Bearer Authentication: []
+    post:
+      tags:
+        - favourite-stocks-controller
+      description: Add stocks to favourite.
+      operationId: addStockToFavourite
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavouriteStockManipulationDTO'
+        required: true
+      responses:
+        "201":
+          description: "For Admin and User: Successfully added stock to the list of\
+            \ fav. "
+        "403":
+          description: "For User: If user wants to add fav stock for other user"
+        "404":
+          description: "For Admin: If user was not found in the database. Or also\
+            \ For Admin and User: If stock with provided name was not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      security:
+        - Bearer Authentication: []
+    delete:
+      tags:
+        - favourite-stocks-controller
+      description: Delete stock from the list of favourites.
+      operationId: deleteFromFavourite
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavouriteStockManipulationDTO'
+        required: true
+      responses:
+        "403":
+          description: "For User: If user wants to delete fav stock for other user"
+        "204":
+          description: "For Admin and User: Successfully deleted stock from the list\
+            \ of fav. "
+        "404":
+          description: "For Admin: If user was not found in the database. Or also\
+            \ For Admin and User: If stock with provided name was not found"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      security:
+        - Bearer Authentication: []
+  /authentication:
+    post:
+      tags:
+        - spring-security-controller
+      description: Authentication
+      operationId: generateToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+        required: true
+      responses:
+        "200":
+          description: Successfully authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        "401":
+          description: Incorrect credentials.
   /users/{userId}:
     get:
       tags:
         - user-controller
+      description: Get user with particular ID.
       operationId: getById
       parameters:
         - name: userId
@@ -21,38 +288,25 @@ paths:
             format: int32
       responses:
         "200":
-          description: OK
+          description: If user is found in DB.
           content:
-            '*/*':
+            application/json:
               schema:
-                type: object
-    put:
-      tags:
-        - user-controller
-      operationId: updateUser
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
-      responses:
-        "200":
-          description: OK
+                $ref: '#/components/schemas/StockUser'
+        "404":
+          description: "For administrator: No such stockUser in DB."
           content:
-            '*/*':
+            application.json:
               schema:
-                type: object
+                $ref: '#/components/schemas/ErrorModel'
+        "403":
+          description: "For user: If user wants to access another user."
+      security:
+        - Bearer Authentication: []
     delete:
       tags:
         - user-controller
+      description: Deleting a User
       operationId: deleteUser
       parameters:
         - name: userId
@@ -62,16 +316,79 @@ paths:
             type: integer
             format: int32
       responses:
+        "403":
+          description: "For user: If user wants to delete another user."
+        "404":
+          description: "For administrator: No such user."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        "204":
+          description: User is successfully deleted
+      security:
+        - Bearer Authentication: []
+  /users/me:
+    get:
+      tags:
+        - user-controller
+      operationId: getSelf
+      responses:
         "200":
           description: OK
           content:
             '*/*':
               schema:
                 type: object
+      security:
+        - Bearer Authentication: []
+  /stocks:
+    get:
+      tags:
+        - stock-controller
+      description: List of stocks available.
+      operationId: getAllStocks
+      responses:
+        "200":
+          description: Get list of stocks (JSON Array).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMetaData'
+      security:
+        - Bearer Authentication: []
+  /stocks/{symbol}:
+    get:
+      tags:
+        - stock-controller
+      description: "Get value for {symbol}."
+      operationId: getStock
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "404":
+          description: No stock with this name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        "200":
+          description: Get requested stock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockData'
+      security:
+        - Bearer Authentication: []
   /security-info/{userId}:
     get:
       tags:
-        - security-controller
+        - security-info-controller
+      description: Get security info for particular user.
       operationId: getById_1
       parameters:
         - name: userId
@@ -81,63 +398,26 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
-          description: OK
+        "404":
+          description: "For administrator: No such user in DB."
           content:
-            '*/*':
+            application.json:
               schema:
-                type: object
-    put:
-      tags:
-        - security-controller
-      operationId: update
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SecurityInfo'
-        required: true
-      responses:
+                $ref: '#/components/schemas/ErrorModel'
+        "403":
+          description: "For user: If user wants to access another users security info."
         "200":
-          description: OK
+          description: User is found in DB.
           content:
-            '*/*':
+            application/json:
               schema:
-                type: object
-    post:
-      tags:
-        - security-controller
-      operationId: create
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SecurityInfo'
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
+                $ref: '#/components/schemas/SecurityInfo'
+      security:
+        - Bearer Authentication: []
     delete:
       tags:
-        - security-controller
+        - security-info-controller
+      description: Deleting a Security info for User
       operationId: delete
       parameters:
         - name: userId
@@ -147,192 +427,21 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
-          description: OK
+        "204":
+          description: Security info is successfully deleted
+        "404":
+          description: "For admin: No such user."
           content:
-            '*/*':
+            application/json:
               schema:
-                type: object
-  /users:
-    get:
-      tags:
-        - user-controller
-      operationId: getAll
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-    post:
-      tags:
-        - user-controller
-      operationId: createUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-  /register:
-    post:
-      tags:
-        - spring-security-controller
-      operationId: registerUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserSecurityDTO'
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-  /fav-stocks/{userId}/{stockName}:
-    post:
-      tags:
-        - favourite-stocks
-      operationId: addStockToFavourite
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-        - name: stockName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-    delete:
-      tags:
-        - favourite-stocks
-      operationId: deleteFromFavourite
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-        - name: stockName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-  /authentication:
-    post:
-      tags:
-        - spring-security-controller
-      operationId: generateToken
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuthRequest'
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-  /stocks:
-    get:
-      tags:
-        - stock-controller
-      operationId: getAllStocks
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-  /stocks/{symbol}:
-    get:
-      tags:
-        - stock-controller
-      operationId: getStock
-      parameters:
-        - name: symbol
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
-  /security-info:
-    get:
-      tags:
-        - security-controller
-      operationId: getAll_1
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SecurityInfo'
-  /fav-stocks/{userId}:
-    get:
-      tags:
-        - favourite-stocks
-      operationId: getFavouriteStocks
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int32
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: object
+                $ref: '#/components/schemas/ErrorModel'
+        "403":
+          description: "For user: If user wants to delete another users security info."
+      security:
+        - Bearer Authentication: []
 components:
   schemas:
-    User:
+    StockUser:
       type: object
       properties:
         userId:
@@ -353,6 +462,11 @@ components:
           format: date-time
         deleted:
           type: boolean
+    ErrorModel:
+      type: object
+      properties:
+        error:
+          type: string
     GrantedAuthority:
       type: object
       properties:
@@ -377,17 +491,17 @@ components:
             - USER
         enabled:
           type: boolean
-        credentialsNonExpired:
-          type: boolean
-        accountNonExpired:
-          type: boolean
         authorities:
           type: array
           items:
             $ref: '#/components/schemas/GrantedAuthority'
+        credentialsNonExpired:
+          type: boolean
+        accountNonExpired:
+          type: boolean
         accountNonLocked:
           type: boolean
-    UserSecurityDTO:
+    UserRegistrationDTO:
       type: object
       properties:
         firstName:
@@ -403,6 +517,14 @@ components:
         birthday:
           type: string
           format: date-time
+    FavouriteStockManipulationDTO:
+      type: object
+      properties:
+        symbol:
+          type: string
+        userId:
+          type: integer
+          format: int32
     AuthRequest:
       type: object
       properties:
@@ -415,3 +537,56 @@ components:
       properties:
         token:
           type: string
+    StockMetaData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        interval:
+          type: string
+        currency:
+          type: string
+        exchangeTimezone:
+          type: string
+        exchange:
+          type: string
+        micCode:
+          type: string
+        type:
+          type: string
+    StockData:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/StockMetaData'
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockValue'
+        status:
+          type: string
+    StockValue:
+      type: object
+      properties:
+        datetime:
+          type: string
+        open:
+          type: number
+          format: double
+        high:
+          type: number
+          format: double
+        low:
+          type: number
+          format: double
+        close:
+          type: number
+          format: double
+        volume:
+          type: integer
+          format: int32
+  securitySchemes:
+    Bearer Authentication:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

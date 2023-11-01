@@ -83,7 +83,7 @@ public class StockRepository {
                 PreparedStatement getStatement = connection.prepareStatement(getMetaIdQuery);
                 PreparedStatement insertStatement = connection.prepareStatement(insertQuery)
         ) {
-            getStatement.setString(1, stockData.getStockMetaData().getSymbol());
+            getStatement.setString(1, stockData.getMeta().getSymbol());
             ResultSet resultSet = getStatement.executeQuery();
 
             if (resultSet.next()) {
@@ -101,7 +101,9 @@ public class StockRepository {
                     insertStatement.addBatch();
                 }
                 insertStatement.executeBatch();
-            } else throw new NoStockMetaDataForThisSymbol();
+            } else {
+                throw new NoStockMetaDataForThisSymbol();
+            }
         } catch (SQLException e) {
             log.error(e.getMessage());
         }

@@ -143,8 +143,7 @@ public class SecurityInfoRepository {
 
         if (updatedInfo.getPassword() == null) {
             updatedInfo.setPassword(oldSecurityInfo.getPassword());
-        }
-        else {
+        } else {
             updatedInfo.setPassword(passwordEncoder.encode(updatedInfo.getPassword()));
         }
         if (updatedInfo.getEmail() == null) {
@@ -153,14 +152,11 @@ public class SecurityInfoRepository {
         if (updatedInfo.getUsername() == null) {
             updatedInfo.setUsername(oldSecurityInfo.getUsername());
         }
-        if (updatedInfo.getRole() == null) {
-            updatedInfo.setRole(oldSecurityInfo.getRole());
-        }
         if (userRepository.emailOrUsernameIsUsed(updatedInfo.getEmail(), updatedInfo.getUsername())) {
             throw new EmailOrUsernameIsAlreadyUsedException();
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
-        String query = "UPDATE security_info SET email = ?, password = ?, username = ?, role_id = ?" +
+        String query = "UPDATE security_info SET email = ?, password = ?, username = ?" +
                 " WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
@@ -169,9 +165,7 @@ public class SecurityInfoRepository {
             preparedStatement.setString(1, updatedInfo.getEmail());
             preparedStatement.setString(2, updatedInfo.getPassword());
             preparedStatement.setString(3, updatedInfo.getUsername());
-            Role role = updatedInfo.getRole();
-            preparedStatement.setInt(4, role == Role.ADMIN ? 1 : 2);
-            preparedStatement.setInt(5, userId);
+            preparedStatement.setInt(4, userId);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();

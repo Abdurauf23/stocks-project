@@ -1,6 +1,7 @@
 package com.stocks.project.security.controller;
 
 import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.UserRegistrationDTO;
 import com.stocks.project.security.model.AuthRequest;
@@ -36,7 +37,7 @@ public class SpringSecurityController {
             @ApiResponse(responseCode = "401",
                     description = "Incorrect credentials.",
                     content = @Content),
-            @ApiResponse(responseCode = "200",
+            @ApiResponse(responseCode = "201",
                     description = "Successfully authenticated.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = AuthResponse.class))
@@ -66,9 +67,21 @@ public class SpringSecurityController {
             userService.register(dto, Role.USER);
             return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
-                        "error" : "Email or username is already used"
+                        "error" : "Email or username is already used."
+                    }
+                    """);
+        } catch (NotEnoughDataException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
+                    {
+                        "error" : "Not enough data is filled."
                     }
                     """);
         }

@@ -4,6 +4,7 @@ import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.StockUser;
+import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,10 +34,12 @@ import java.util.Optional;
 @SecurityRequirement(name = "Bearer Authentication")
 public class UserController {
     private final UserService userService;
+    private final SecurityCredentialsRepository credentialsRepository;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, SecurityCredentialsRepository credentialsRepository) {
         this.userService = userService;
+        this.credentialsRepository = credentialsRepository;
     }
 
     @Operation(description = "List of all users in DB")
@@ -172,11 +175,11 @@ public class UserController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = StockUser.class)))
     })
-    @PutMapping("/{userId}")
+    @PutMapping
     public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser,
-                                        @PathVariable int userId,
                                         Principal principal) {
         String login = principal.getName();
+        int userId = updatedStockUser.getUserId();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             try {
                 return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
@@ -192,5 +195,18 @@ public class UserController {
             }
         }
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getSelf(Principal principal) {
+        return new ResponseEntity<>(
+                userService.findById(
+                        credentialsRepository
+                                .findByUserLogin(principal.getName())
+                                .get()
+                                .getId()
+                ),
+                HttpStatus.OK);
     }
 }

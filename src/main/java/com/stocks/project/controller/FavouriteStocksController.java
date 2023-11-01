@@ -3,7 +3,9 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
+import com.stocks.project.model.FavouriteStockManipulationDTO;
 import com.stocks.project.model.StockValue;
+import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,8 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,27 +31,28 @@ import java.security.Principal;
 @SecurityRequirement(name = "Bearer Authentication")
 public class FavouriteStocksController {
     private final UserService userService;
+    private final SecurityCredentialsRepository credentialsRepository;
 
     @Autowired
-    public FavouriteStocksController(UserService userService) {
+    public FavouriteStocksController(UserService userService,
+                                     SecurityCredentialsRepository credentialsRepository) {
         this.userService = userService;
+        this.credentialsRepository = credentialsRepository;
     }
 
     @Operation(description = "Get favorite stocks for particular stockUser.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "403",
-                    description = "For User: If stockUser wants to see others favourite stocks",
                     content = @Content),
             @ApiResponse(responseCode = "200",
-                    description = "For Admin and User: Admin can access anyone. " +
-                            "User can access only his fav stocks.",
+                    description = "For Admin and User: Can access only his fav stocks.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = StockValue.class)))
     })
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId, Principal principal) {
+    @GetMapping
+    public ResponseEntity<?> getFavouriteStocks(Principal principal) {
         String login = principal.getName();
-
+        int userId = credentialsRepository.findByUserLogin(login).get().getId();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
         }
@@ -66,15 +69,16 @@ public class FavouriteStocksController {
                             "For Admin and User: If stock with provided name was not found",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
-            @ApiResponse(responseCode = "200",
+            @ApiResponse(responseCode = "201",
                     description = "For Admin and User: Successfully added stock to the list of fav. ",
                     content = @Content)
     })
-    @PostMapping("/{userId}/{stockName}")
-    public ResponseEntity<?> addStockToFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName,
+    @PostMapping
+    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto,
                                                  Principal principal) {
         String login = principal.getName();
+        int userId = dto.getUserId();
+        String stockName = dto.getSymbol();
 
         if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -116,11 +120,12 @@ public class FavouriteStocksController {
                     description = "For Admin and User: Successfully deleted stock from the list of fav. ",
                     content = @Content)
     })
-    @DeleteMapping("/{userId}/{stockName}")
-    public ResponseEntity<?> deleteFromFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName,
+    @DeleteMapping
+    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto,
                                                  Principal principal) {
         String login = principal.getName();
+        int userId = dto.getUserId();
+        String stockName = dto.getSymbol();
 
         if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -134,7 +139,7 @@ public class FavouriteStocksController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("""
                             {
-                                "error" : "No such stock with this name. Check spelling"\s
+                                "error" : "No such stock with this name. Check spelling"
                             }
                             """);
         } catch (NoSuchUserException e) {
@@ -143,7 +148,7 @@ public class FavouriteStocksController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("""
                             {
-                                "error" : "No such user"\s
+                                "error" : "No such user"
                             }
                             """);
         }

@@ -15,7 +15,7 @@ public class StockDataMapper {
     public StockData mapRow(ResultSet rs) throws SQLException {
         StockData stockData = new StockData();
         StockMetaData stockMetaData = mapMeta(rs);
-        stockData.setStockMetaData(stockMetaData);
+        stockData.setMeta(stockMetaData);
         stockData.setStatus(rs.getString("stock_status"));
         stockData.setValues(new ArrayList<>());
         do {

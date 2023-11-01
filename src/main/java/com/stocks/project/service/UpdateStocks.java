@@ -55,10 +55,10 @@ public class UpdateStocks {
             StockData stockData = restTemplate.getForObject(uri, StockData.class);
             try {
                 if (empty && stockData != null) {
-                    StockMetaData stockMetaData = stockData.getStockMetaData();
+                    StockMetaData stockMetaData = stockData.getMeta();
                     stockMetaData.setMicCode("XNGS");
                     stockMetaData.setExchangeTimezone("Asia/Tashkent");
-                    stockRepository.addStockMeta(stockData.getStockMetaData());
+                    stockRepository.addStockMeta(stockData.getMeta());
                 }
                 stockRepository.addStockData(Objects.requireNonNull(stockData));
             } catch (NoStockMetaDataForThisSymbol | StockWithThisNameAlreadyExistsException e) {

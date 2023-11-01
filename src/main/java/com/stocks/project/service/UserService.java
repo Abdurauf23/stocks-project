@@ -4,6 +4,7 @@ import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.StockUser;
 import com.stocks.project.model.UserRegistrationDTO;
@@ -49,7 +50,7 @@ public class UserService {
         return userRepository.updateUser(updatedStockUser, userId);
     }
 
-    public void register(UserRegistrationDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
+    public void register(UserRegistrationDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
         userRepository.register(dto, role);
     }
 
