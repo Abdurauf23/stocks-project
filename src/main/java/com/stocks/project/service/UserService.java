@@ -4,9 +4,10 @@ import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
-import com.stocks.project.model.User;
-import com.stocks.project.model.UserSecurityDTO;
+import com.stocks.project.model.StockUser;
+import com.stocks.project.model.UserRegistrationDTO;
 import com.stocks.project.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,16 +25,16 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public List<User> findAll() {
+    public List<StockUser> findAll() {
         return userRepository.findAll();
     }
 
-    public Optional<User> findById(int id) {
+    public Optional<StockUser> findById(int id) {
         return userRepository.findById(id);
     }
 
-    public Optional<User> createUser(User user) throws NoFirstNameException {
-        return userRepository.createUser(user);
+    public Optional<StockUser> createUser(StockUser stockUser) throws NoFirstNameException {
+        return userRepository.createUser(stockUser);
     }
 
     public void delete(int userId) throws NoSuchUserException {
@@ -45,11 +46,11 @@ public class UserService {
         }
     }
 
-    public Optional<User> updateUser(User updatedUser, int userId) throws NoSuchUserException {
-        return userRepository.updateUser(updatedUser, userId);
+    public Optional<StockUser> updateUser(StockUser updatedStockUser, int userId) throws NoSuchUserException {
+        return userRepository.updateUser(updatedStockUser, userId);
     }
 
-    public void register(UserSecurityDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException {
+    public void register(UserRegistrationDTO dto, Role role) throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
         userRepository.register(dto, role);
     }
 

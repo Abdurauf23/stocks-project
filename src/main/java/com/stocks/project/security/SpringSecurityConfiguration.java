@@ -51,16 +51,17 @@ public class SpringSecurityConfiguration {
                         // interacting with User
                         .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.PUT,"/users").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(HttpMethod.GET,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(HttpMethod.PUT,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
                         .requestMatchers(HttpMethod.DELETE,"/users/**").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.GET,"/users/me").hasAnyRole(ADMIN.name(), USER.name())
 
                         // interacting with security info of the User
                         .requestMatchers(HttpMethod.GET,"/security-info").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.PUT, "/security-info").hasAnyRole(ADMIN.name(), USER.name())
+                        .requestMatchers(HttpMethod.POST,"/security-info").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.DELETE,"/security-info/**").hasRole(ADMIN.name())
-                        .requestMatchers(HttpMethod.POST,"/security-info/**").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.GET, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
-                        .requestMatchers(HttpMethod.PUT, "/security-info/**").hasAnyRole(ADMIN.name(), USER.name())
 
                         // getting, adding and deleting from the list of favourite stocks
                         .requestMatchers("/fav-stocks/**").hasAnyRole(ADMIN.name(), USER.name())

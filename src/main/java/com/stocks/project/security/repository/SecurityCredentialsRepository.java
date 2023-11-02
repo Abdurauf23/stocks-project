@@ -2,6 +2,7 @@ package com.stocks.project.security.repository;
 
 import com.stocks.project.model.Role;
 import com.stocks.project.security.model.SecurityCredentials;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 @Repository
+@Slf4j
 public class SecurityCredentialsRepository {
     private final DataSource dataSource;
 
@@ -42,7 +44,7 @@ public class SecurityCredentialsRepository {
                 );
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
 
         return Optional.ofNullable(securityCredentials);

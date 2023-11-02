@@ -1,9 +1,10 @@
 package com.stocks.project.config;
 
 import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
+import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
-import com.stocks.project.model.User;
-import com.stocks.project.model.UserSecurityDTO;
+import com.stocks.project.model.StockUser;
+import com.stocks.project.model.UserRegistrationDTO;
 import com.stocks.project.repository.UserRepository;
 import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
@@ -27,7 +28,8 @@ public class CreateAdminIfNo {
     }
 
     @Bean
-    public Optional<User> createAdminIfThereIsNo() throws EmailOrUsernameIsAlreadyUsedException {
+    public Optional<StockUser> createAdminIfThereIsNo()
+            throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
         String username = "admin";
 
         if (credentialsRepository.findByUserLogin(username).isPresent()) {
@@ -40,7 +42,7 @@ public class CreateAdminIfNo {
         String password = "adminroot";
 
         userRepository.register(
-                UserSecurityDTO.builder()
+                UserRegistrationDTO.builder()
                         .firstName(username)
                         .email(email)
                         .username(username)
@@ -53,8 +55,7 @@ public class CreateAdminIfNo {
         Optional<SecurityCredentials> user = credentialsRepository.findByUserLogin(username);
         if (user.isPresent()) {
             return userRepository.findById(user.get().getId());
-        }
-        else {
+        } else {
             return Optional.empty();
         }
     }

@@ -1,6 +1,6 @@
 package com.stocks.project.controller;
 
-import com.stocks.project.model.Meta;
+import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.StockData;
 import com.stocks.project.service.StockService;
 import org.json.JSONArray;
@@ -34,9 +34,9 @@ public class StockControllerTest {
 
     @Test
     public void testGetAllStocks() throws Exception {
-        List<Meta> metaList = List.of(new Meta(), new Meta());
+        List<StockMetaData> stockMetaDataList = List.of(new StockMetaData(), new StockMetaData());
         given(stockService.getAllMeta())
-                .willReturn(metaList);
+                .willReturn(stockMetaDataList);
 
         String body = this.mockMvc
                 .perform(get("/stocks"))
@@ -49,7 +49,7 @@ public class StockControllerTest {
         int arraySize = array.length();
 
         Assertions.assertNotNull(array);
-        Assertions.assertEquals(metaList.size(), arraySize);
+        Assertions.assertEquals(stockMetaDataList.size(), arraySize);
     }
 
     @Test

@@ -6,8 +6,8 @@ import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.utils.SecurityMapper;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
@@ -22,12 +22,21 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-@RequiredArgsConstructor
-public class SecurityRepository {
+@Slf4j
+public class SecurityInfoRepository {
     private final DataSource dataSource;
     private final SecurityMapper securityMapper;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public SecurityInfoRepository(DataSource dataSource, SecurityMapper securityMapper,
+                                  UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.dataSource = dataSource;
+        this.securityMapper = securityMapper;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public List<SecurityInfo> findAll() {
         List<SecurityInfo> securityInfos = new ArrayList<>();
@@ -40,7 +49,7 @@ public class SecurityRepository {
                 securityInfos.add(securityMapper.mapRow(resultSet));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
 
         return securityInfos;
@@ -58,7 +67,7 @@ public class SecurityRepository {
                 securityInfo = securityMapper.mapRow(resultSet);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
 
         return Optional.ofNullable(securityInfo);
@@ -99,7 +108,7 @@ public class SecurityRepository {
                 securityInfo = findById(res.getInt(1));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
 
         return securityInfo;
@@ -117,7 +126,7 @@ public class SecurityRepository {
             preparedStatement.setInt(1, userId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
     }
 
@@ -126,11 +135,15 @@ public class SecurityRepository {
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
-        SecurityInfo oldSecurityInfo = findById(userId).get();
+        Optional<SecurityInfo> securityInfoByID = findById(userId);
+        if (securityInfoByID.isEmpty()) {
+            throw new NoSuchUserException();
+        }
+        SecurityInfo oldSecurityInfo = securityInfoByID.get();
+
         if (updatedInfo.getPassword() == null) {
             updatedInfo.setPassword(oldSecurityInfo.getPassword());
-        }
-        else {
+        } else {
             updatedInfo.setPassword(passwordEncoder.encode(updatedInfo.getPassword()));
         }
         if (updatedInfo.getEmail() == null) {
@@ -139,14 +152,11 @@ public class SecurityRepository {
         if (updatedInfo.getUsername() == null) {
             updatedInfo.setUsername(oldSecurityInfo.getUsername());
         }
-        if (updatedInfo.getRole() == null) {
-            updatedInfo.setRole(oldSecurityInfo.getRole());
-        }
         if (userRepository.emailOrUsernameIsUsed(updatedInfo.getEmail(), updatedInfo.getUsername())) {
             throw new EmailOrUsernameIsAlreadyUsedException();
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
-        String query = "UPDATE security_info SET email = ?, password = ?, username = ?, role_id = ?" +
+        String query = "UPDATE security_info SET email = ?, password = ?, username = ?" +
                 " WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
@@ -155,9 +165,7 @@ public class SecurityRepository {
             preparedStatement.setString(1, updatedInfo.getEmail());
             preparedStatement.setString(2, updatedInfo.getPassword());
             preparedStatement.setString(3, updatedInfo.getUsername());
-            Role role = updatedInfo.getRole();
-            preparedStatement.setInt(4, role == Role.ADMIN ? 1 : 2);
-            preparedStatement.setInt(5, userId);
+            preparedStatement.setInt(4, userId);
 
             preparedStatement.executeUpdate();
             ResultSet res = preparedStatement.getGeneratedKeys();
@@ -165,7 +173,7 @@ public class SecurityRepository {
                 securityInfo = findById(res.getInt(1));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
         }
 
         return securityInfo;

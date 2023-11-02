@@ -3,8 +3,9 @@ package com.stocks.project.controller;
 import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
-import com.stocks.project.model.StockData;
+import com.stocks.project.model.FavouriteStockManipulationDTO;
 import com.stocks.project.model.StockValue;
+import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,13 +13,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,28 +29,30 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/fav-stocks")
 @SecurityRequirement(name = "Bearer Authentication")
-public class FavouriteStocks {
+public class FavouriteStocksController {
     private final UserService userService;
+    private final SecurityCredentialsRepository credentialsRepository;
 
-    public FavouriteStocks(UserService userService) {
+    @Autowired
+    public FavouriteStocksController(UserService userService,
+                                     SecurityCredentialsRepository credentialsRepository) {
         this.userService = userService;
+        this.credentialsRepository = credentialsRepository;
     }
 
-    @Operation(description = "Get favorite stocks for particular user.")
+    @Operation(description = "Get favorite stocks for particular stockUser.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "403",
-                    description = "For User: If user wants to see others favourite stocks",
                     content = @Content),
             @ApiResponse(responseCode = "200",
-                    description = "For Admin and User: Admin can access anyone. " +
-                            "User can access only his fav stocks.",
+                    description = "For Admin and User: Can access only his fav stocks.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = StockValue.class)))
     })
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getFavouriteStocks(@PathVariable int userId, Principal principal) {
+    @GetMapping
+    public ResponseEntity<?> getFavouriteStocks(Principal principal) {
         String login = principal.getName();
-
+        int userId = credentialsRepository.findByUserLogin(login).get().getId();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
         }
@@ -65,22 +69,23 @@ public class FavouriteStocks {
                             "For Admin and User: If stock with provided name was not found",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
-            @ApiResponse(responseCode = "200",
+            @ApiResponse(responseCode = "201",
                     description = "For Admin and User: Successfully added stock to the list of fav. ",
                     content = @Content)
     })
-    @PostMapping("/{userId}/{stockName}")
-    public ResponseEntity<?> addStockToFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName,
+    @PostMapping
+    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto,
                                                  Principal principal) {
         String login = principal.getName();
+        int userId = dto.getUserId();
+        String stockName = dto.getSymbol();
 
         if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
         try {
             userService.addStockToFavourite(userId, stockName);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (NoStockWithThisNameException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
@@ -115,11 +120,12 @@ public class FavouriteStocks {
                     description = "For Admin and User: Successfully deleted stock from the list of fav. ",
                     content = @Content)
     })
-    @DeleteMapping("/{userId}/{stockName}")
-    public ResponseEntity<?> deleteFromFavourite(@PathVariable int userId,
-                                                 @PathVariable String stockName,
+    @DeleteMapping
+    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto,
                                                  Principal principal) {
         String login = principal.getName();
+        int userId = dto.getUserId();
+        String stockName = dto.getSymbol();
 
         if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -133,7 +139,7 @@ public class FavouriteStocks {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("""
                             {
-                                "error" : "No such stock with this name. Check spelling"\s
+                                "error" : "No such stock with this name. Check spelling"
                             }
                             """);
         } catch (NoSuchUserException e) {
@@ -142,7 +148,7 @@ public class FavouriteStocks {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("""
                             {
-                                "error" : "No such user"\s
+                                "error" : "No such user"
                             }
                             """);
         }

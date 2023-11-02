@@ -2,7 +2,7 @@ package com.stocks.project.service;
 
 import com.stocks.project.exception.NoStockMetaDataForThisSymbol;
 import com.stocks.project.exception.StockWithThisNameAlreadyExistsException;
-import com.stocks.project.model.Meta;
+import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.StockData;
 import com.stocks.project.repository.StockRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -38,7 +39,7 @@ public class UpdateStocks {
         log.info("Updating db started!");
 
         // "AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META"
-        List<String> symbols = stockRepository.findAllMeta().stream().map(Meta::getSymbol).toList();
+        List<String> symbols = stockRepository.findAllMeta().stream().map(StockMetaData::getSymbol).toList();
         if (symbols.isEmpty()) {
             symbols = List.of("AAPL", "GOOGL", "TSLA", "MSFT", "AMZN", "NVDA", "META");
             empty = true;
@@ -53,15 +54,15 @@ public class UpdateStocks {
                     "&apikey=" + API_KEY;
             StockData stockData = restTemplate.getForObject(uri, StockData.class);
             try {
-                if (empty) {
-                    Meta meta = stockData.getMeta();
-                    meta.setMicCode("XNGS");
-                    meta.setExchangeTimezone("Asia/Tashkent");
+                if (empty && stockData != null) {
+                    StockMetaData stockMetaData = stockData.getMeta();
+                    stockMetaData.setMicCode("XNGS");
+                    stockMetaData.setExchangeTimezone("Asia/Tashkent");
                     stockRepository.addStockMeta(stockData.getMeta());
                 }
-                stockRepository.addStockData(stockData);
+                stockRepository.addStockData(Objects.requireNonNull(stockData));
             } catch (NoStockMetaDataForThisSymbol | StockWithThisNameAlreadyExistsException e) {
-                e.printStackTrace();
+                log.error(e.getMessage());
             }
         }
 

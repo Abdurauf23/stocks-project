@@ -5,7 +5,7 @@ import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.SecurityInfo;
-import com.stocks.project.model.User;
+import com.stocks.project.model.StockUser;
 import com.stocks.project.service.SecurityInfoService;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,11 +32,16 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/security-info")
-@RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
-public class SecurityController {
+public class SecurityInfoController {
     private final SecurityInfoService securityInfoService;
     private final UserService userService;
+
+    public SecurityInfoController(SecurityInfoService securityInfoService,
+                                  UserService userService) {
+        this.securityInfoService = securityInfoService;
+        this.userService = userService;
+    }
 
     @Operation(description = "List of all users security info in DB")
     @ApiResponses(value = {
@@ -47,7 +51,7 @@ public class SecurityController {
             @ApiResponse(responseCode = "200",
                     description = "For admin: List of all users in DB (JSON array).",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = User.class))
+                            schema = @Schema(implementation = StockUser.class))
             )
     })
     @GetMapping
@@ -108,12 +112,16 @@ public class SecurityController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
-    @PostMapping("/{userId}")
-    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo, @PathVariable int userId) {
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo) {
         try {
+            int userId = newSecurityInfo.getUserId();
             Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
             if (securityInfo.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                         {
                             "error" : "Bad request"
                         }
@@ -121,13 +129,19 @@ public class SecurityController {
             }
             return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
         } catch (NotEnoughDataException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error":"Not enough data"
                     }
                     """);
         } catch (NoSuchUserException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error" : "No such user"
                     }
@@ -159,7 +173,10 @@ public class SecurityController {
         try {
             securityInfoService.delete(userId);
         } catch (NoSuchUserException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error" : "No such user"
                     }
@@ -186,22 +203,28 @@ public class SecurityController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
-    @PutMapping("/{userId}")
+    @PutMapping
     public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo,
-                                    @PathVariable int userId,
                                     Principal principal) {
         String login = principal.getName();
+        int userId = updatedInfo.getUserId();
         if (userService.isAdmin(login) || userService.isSame(login, userId)) {
             try {
                 return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
             } catch (NoSuchUserException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                     {
                         "error" : "No such user"
                     }
                     """);
             } catch (EmailOrUsernameIsAlreadyUsedException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("""
                     {
                         "error" : "Email or username is already used"
                     }

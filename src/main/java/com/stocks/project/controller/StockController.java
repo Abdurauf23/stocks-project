@@ -1,7 +1,7 @@
 package com.stocks.project.controller;
 
 import com.stocks.project.model.ErrorModel;
-import com.stocks.project.model.Meta;
+import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.StockData;
 import com.stocks.project.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,7 +64,7 @@ public class StockController {
            @ApiResponse(responseCode = "200",
                     description = "Get list of stocks (JSON Array).",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = Meta.class)))
+                            schema = @Schema(implementation = StockMetaData.class)))
     })
     @GetMapping
     public ResponseEntity<?> getAllStocks() {
