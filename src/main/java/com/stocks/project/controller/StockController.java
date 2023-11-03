@@ -32,7 +32,7 @@ public class StockController {
         this.stockService = stockService;
     }
 
-    @Operation(description = "Get value for {symbol}.")
+    @Operation(description = "Get value for particular Stock symbol.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
                     description = "No stock with this name",

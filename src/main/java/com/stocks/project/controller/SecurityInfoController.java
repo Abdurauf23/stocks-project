@@ -62,7 +62,7 @@ public class SecurityInfoController {
     @Operation(description = "Get security info for particular user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such user in DB.",
+                    description = "For admin: No such user in DB.",
                     content = @Content(mediaType = "application.json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -85,7 +85,7 @@ public class SecurityInfoController {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body("""
                         {
-                            "error" : "No such user"\s
+                            "error" : "No such user"
                         }
                         """);
             }
@@ -97,18 +97,18 @@ public class SecurityInfoController {
     @Operation(description = "Creating a user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "400",
-                    description = "Not enough data for registration OR Email or username is already used",
+                    description = "For admin: Not enough data for registration OR Email or username is already used",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "404",
-                    description = "No User with this ID.",
+                    description = "For admin: No User with this ID.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
                     description = "For user: If user wants to create.",
                     content = @Content),
             @ApiResponse(responseCode = "201",
-                    description = "Security info is successfully created in DB.",
+                    description = "For admin: Security info is successfully created in DB.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
@@ -134,7 +134,7 @@ public class SecurityInfoController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body("""
                     {
-                        "error":"Not enough data"
+                        "error" : "Not enough data"
                     }
                     """);
         } catch (NoSuchUserException e) {
@@ -147,7 +147,10 @@ public class SecurityInfoController {
                     }
                     """);
         } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""
                     {
                         "error" : "Email or username is already used"
                     }
@@ -165,7 +168,7 @@ public class SecurityInfoController {
                     description = "For user: If user wants to delete another users security info.",
                     content = @Content),
             @ApiResponse(responseCode = "204",
-                    description = "Security info is successfully deleted",
+                    description = "For admin: Security info is successfully deleted",
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
