@@ -7,9 +7,10 @@ import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.exception.NotEnoughDataException;
 import com.stocks.project.exception.StockWithThisNameAlreadyExistsException;
-import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.Role;
+import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.model.StockData;
+import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.StockUser;
 import com.stocks.project.model.StockValue;
 import com.stocks.project.model.UserRegistrationDTO;
@@ -26,21 +27,20 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
-public class StockUserRepositoryTest {
+public class UserRepositoryTest {
     private final UserRepository userRepository;
     private final SecurityInfoRepository securityInfoRepository;
     private final StockRepository stockRepository;
     private final SecurityCredentialsRepository credentialsRepository;
 
     @Autowired
-    public StockUserRepositoryTest(UserRepository userRepository,
-                                   SecurityInfoRepository securityInfoRepository,
-                                   StockRepository stockRepository, SecurityCredentialsRepository credentialsRepository) {
+    public UserRepositoryTest(UserRepository userRepository,
+                              SecurityInfoRepository securityInfoRepository,
+                              StockRepository stockRepository, SecurityCredentialsRepository credentialsRepository) {
         this.userRepository = userRepository;
         this.securityInfoRepository = securityInfoRepository;
         this.stockRepository = stockRepository;
@@ -60,7 +60,8 @@ public class StockUserRepositoryTest {
         List<StockUser> usersList = userRepository.findAll();
         int size = usersList.size();
         assertNotEquals(null, usersList, "List is null");
-        assertEquals(3, size, "Size is not 3");
+        // 4 because + admin
+        assertEquals(4, size, "Size is not 4");
 
         // delete created users
         usersList.forEach(user -> {
@@ -94,7 +95,9 @@ public class StockUserRepositoryTest {
         assertFalse(userRepository.emailOrUsernameIsUsed(" ", " "));
 
         // delete created user
-        int id = credentialsRepository.findByUserLogin(email).get().getId();
+        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(email);
+        assertTrue(byUserLogin.isPresent());
+        int id = byUserLogin.get().getId();
         userRepository.deleteForAdmin(id);
     }
 
@@ -110,7 +113,9 @@ public class StockUserRepositoryTest {
         );
 
         // get user id from login
-        int id = credentialsRepository.findByUserLogin(email).get().getId();
+        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(email);
+        assertTrue(byUserLogin.isPresent());
+        int id = byUserLogin.get().getId();
 
         // check email and username belong to user with user_id = id (got earlier)
         assertFalse(userRepository.isSamePerson("some@gmail.com", id));
@@ -141,12 +146,12 @@ public class StockUserRepositoryTest {
 
         // get id for both of them
         Optional<SecurityCredentials> user = credentialsRepository.findByUserLogin(userUsername);
-        assertNotNull(user, "User is not found in DB");
-        assertFalse(userRepository.isAdminByLogin(user.get().getLogin()), "This is not user");
+        assertTrue(user.isPresent());
+        assertFalse(userRepository.isAdminByLogin(user.get().getLogin()));
 
         Optional<SecurityCredentials> admin = credentialsRepository.findByUserLogin(adminUsername);
-        assertNotNull(admin, "Admin is not found in DB");
-        assertTrue(userRepository.isAdminByLogin(admin.get().getLogin()), "This is not admin");
+        assertTrue(admin.isPresent());
+        assertTrue(userRepository.isAdminByLogin(admin.get().getLogin()));
 
         // test if admin
         assertTrue(userRepository.isAdminByLogin(admin.get().getLogin()));
@@ -165,10 +170,12 @@ public class StockUserRepositoryTest {
         );
 
         // test for creation
-        assertTrue(user.isPresent(), "Not created user in DB");
+        assertTrue(user.isPresent());
 
         // get this user by id
-        StockUser stockUserFromDB = userRepository.findById(user.get().getUserId()).get();
+        Optional<StockUser> opStockUserFromDB = userRepository.findById(user.get().getUserId());
+        assertTrue(opStockUserFromDB.isPresent());
+        StockUser stockUserFromDB = opStockUserFromDB.get();
 
         // test for null and test for first name
         assertNotEquals(null, stockUserFromDB);
@@ -271,8 +278,8 @@ public class StockUserRepositoryTest {
         // check if it has appeared in both stock_user and security_info tables
         assertTrue(byUserLogin.isPresent());
         int id = byUserLogin.get().getId();
-        assertNotNull(userRepository.findById(id).get());
-        assertNotNull(securityInfoRepository.findById(id).get());
+        assertTrue(userRepository.findById(id).isPresent());
+        assertTrue(securityInfoRepository.findById(id).isPresent());
 
         // delete user
         userRepository.deleteForAdmin(id);
@@ -281,7 +288,7 @@ public class StockUserRepositoryTest {
     @Test
     public void testFavouriteStocksOperations() throws NoFirstNameException,
             StockWithThisNameAlreadyExistsException, NoStockWithThisNameException,
-            NoSuchUserException, NoStockMetaDataForThisSymbol {
+            NoSuchUserException, NoStockMetaDataForThisSymbol, EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
         // create user
         StockUser stockUser = StockUser.builder().firstName("Kitana").build();
         Optional<StockUser> userFromDB = userRepository.createUser(stockUser);
@@ -304,6 +311,9 @@ public class StockUserRepositoryTest {
         // add some stocks to favourite
         assertTrue(userFromDB.isPresent());
         int id = userFromDB.get().getUserId();
+
+        SecurityInfo securityInfo = SecurityInfo.builder().email("some@email").username("abc").password("123").build();
+        securityInfoRepository.createSecurityInfo(securityInfo, id);
 
         userRepository.addStockToFavourite(id, "AAPL");
         userRepository.addStockToFavourite(id, "GOOGL");
@@ -328,9 +338,10 @@ public class StockUserRepositoryTest {
         stockRepository.addStockData(appleStockData);
         stockRepository.addStockData(googleStockData);
 
-        // check if they are added
+        // check if they are added and check people wth fav stocks
         int numOfFavStocks = userRepository.getAllFavouriteStocks(id).size();
         assertEquals(2, numOfFavStocks);
+        assertEquals(1, userRepository.getPeopleWithFavStocks().size());
 
         // delete user and stocks from DB
         userRepository.deleteStockFromFavourite(id, "AAPL");

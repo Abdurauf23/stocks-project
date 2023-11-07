@@ -146,14 +146,14 @@ public class SecurityInfoRepository {
         } else {
             updatedInfo.setPassword(passwordEncoder.encode(updatedInfo.getPassword()));
         }
+        if (userRepository.emailOrUsernameIsUsed(updatedInfo.getEmail(), updatedInfo.getUsername())) {
+            throw new EmailOrUsernameIsAlreadyUsedException();
+        }
         if (updatedInfo.getEmail() == null) {
             updatedInfo.setEmail(oldSecurityInfo.getEmail());
         }
         if (updatedInfo.getUsername() == null) {
             updatedInfo.setUsername(oldSecurityInfo.getUsername());
-        }
-        if (userRepository.emailOrUsernameIsUsed(updatedInfo.getEmail(), updatedInfo.getUsername())) {
-            throw new EmailOrUsernameIsAlreadyUsedException();
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
         String query = "UPDATE security_info SET email = ?, password = ?, username = ?" +
