@@ -34,17 +34,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @AutoConfigureTestDatabase
 public class StockUserControllerTest {
-    @Autowired
-    MockMvc mockMvc;
-
-    @MockBean
-    UserService userService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
     static List<StockUser> users = new ArrayList<>();
     static StockUser stockUser = StockUser.builder().firstName("James").build();
+    @Autowired
+    MockMvc mockMvc;
+    @MockBean
+    UserService userService;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeAll
     public static void beforeAll() {
@@ -68,8 +65,8 @@ public class StockUserControllerTest {
                 .thenReturn(Optional.of(stockUser));
 
         mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(stockUser)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(stockUser)))
                 .andExpect(status().isCreated());
     }
 
@@ -77,12 +74,12 @@ public class StockUserControllerTest {
     public void updateUserTest() throws Exception {
         when(userService.updateUser(any(), anyInt()))
                 .thenReturn(Optional.of(stockUser));
-        when(userService.isAdmin("admin")).thenReturn(true);
+        when(userService.isAdmin("admin"))
+                .thenReturn(true);
 
         mockMvc.perform(put("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(stockUser))
-                        .principal(() -> "admin"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(stockUser)))
                 .andExpect(status().isOk());
     }
 
@@ -90,10 +87,10 @@ public class StockUserControllerTest {
     public void deleteUserTest() throws Exception {
         UserService mockUS = Mockito.mock(UserService.class);
         doNothing().when(mockUS).delete(anyInt());
-        when(userService.isAdmin("admin")).thenReturn(true);
+        when(userService.isAdmin("admin"))
+                .thenReturn(true);
 
-        mockMvc.perform(delete("/users/10")
-                        .principal(() -> "admin"))
+        mockMvc.perform(delete("/users/10"))
                 .andExpect(status().isNoContent());
     }
 

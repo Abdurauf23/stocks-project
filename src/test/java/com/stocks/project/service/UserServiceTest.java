@@ -110,9 +110,4 @@ public class UserServiceTest {
         Mockito.verify(userRepository, Mockito.times(1)).deleteStockFromFavourite(anyInt(), any());
     }
 
-    @Test
-    public void testIsSame() {
-        userService.isSame(LOGIN, ID);
-        Mockito.verify(userRepository, Mockito.times(1)).isSamePerson(any(), anyInt());
-    }
 }

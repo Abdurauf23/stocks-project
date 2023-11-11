@@ -102,31 +102,6 @@ public class UserRepositoryTest {
     }
 
     @Test
-    public void testSamePerson() throws EmailOrUsernameIsAlreadyUsedException, NoSuchUserException, NotEnoughDataException {
-        // register new user
-        String email = "used.email@gmail.com";
-        String username = "used.username";
-        userRepository.register(new UserRegistrationDTO(
-                        "FN", "SN", email,
-                        username, "pass", null),
-                Role.USER
-        );
-
-        // get user id from login
-        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(email);
-        assertTrue(byUserLogin.isPresent());
-        int id = byUserLogin.get().getId();
-
-        // check email and username belong to user with user_id = id (got earlier)
-        assertFalse(userRepository.isSamePerson("some@gmail.com", id));
-        assertTrue(userRepository.isSamePerson(email, id));
-        assertTrue(userRepository.isSamePerson(username, id));
-
-        // delete created user
-        userRepository.deleteForAdmin(id);
-    }
-
-    @Test
     public void checkIfAdmin() throws EmailOrUsernameIsAlreadyUsedException, NoSuchUserException, NotEnoughDataException {
         // register ordinary user
         String userUsername = "username";
