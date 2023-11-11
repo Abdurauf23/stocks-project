@@ -8,6 +8,7 @@ import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.utils.SecurityMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
@@ -29,6 +30,17 @@ public class SecurityInfoRepository {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${securityInfo.findAllQuery}")
+    private String findAllQuery;
+    @Value("${securityInfo.findByIdQuery}")
+    private String findByIdQuery;
+    @Value("${securityInfo.createSecurityInfoQuery}")
+    private String createSecurityInfoQuery;
+    @Value("${securityInfo.updateSecurityInfoQuery}")
+    private String updateSecurityInfoQuery;
+    @Value("${securityInfo.deleteSecurityInfoQuery}")
+    private String deleteSecurityInfoQuery;
+
     @Autowired
     public SecurityInfoRepository(DataSource dataSource, SecurityMapper securityMapper,
                                   UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -40,10 +52,8 @@ public class SecurityInfoRepository {
 
     public List<SecurityInfo> findAll() {
         List<SecurityInfo> securityInfos = new ArrayList<>();
-        String query = "SELECT * FROM security_info INNER JOIN public.role r " +
-                "ON r.role_id = security_info.role_id;";
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+             PreparedStatement preparedStatement = connection.prepareStatement(findAllQuery)) {
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
                 securityInfos.add(securityMapper.mapRow(resultSet));
@@ -57,10 +67,8 @@ public class SecurityInfoRepository {
 
     public Optional<SecurityInfo> findById(int id) {
         SecurityInfo securityInfo = null;
-        String query = "SELECT * FROM security_info INNER JOIN public.role r " +
-                "ON r.role_id = security_info.role_id WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+             PreparedStatement preparedStatement = connection.prepareStatement(findByIdQuery)) {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
@@ -90,11 +98,9 @@ public class SecurityInfoRepository {
             throw new EmailOrUsernameIsAlreadyUsedException();
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
-        String query = "INSERT INTO security_info (id, username, password, email, role_id) " +
-                "VALUES (?, ?, ?, ?, ?);";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
-                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+                     connection.prepareStatement(createSecurityInfoQuery, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setInt(1, userId);
             preparedStatement.setString(2, newSecurityInfo.getUsername());
             preparedStatement.setString(3, passwordEncoder.encode(newSecurityInfo.getPassword()));
@@ -118,10 +124,9 @@ public class SecurityInfoRepository {
         if (userRepository.findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
-        String query = "DELETE FROM security_info WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
-                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+                     connection.prepareStatement(deleteSecurityInfoQuery, Statement.RETURN_GENERATED_KEYS)
         ) {
             preparedStatement.setInt(1, userId);
             preparedStatement.executeUpdate();
@@ -156,11 +161,9 @@ public class SecurityInfoRepository {
             updatedInfo.setUsername(oldSecurityInfo.getUsername());
         }
         Optional<SecurityInfo> securityInfo = Optional.empty();
-        String query = "UPDATE security_info SET email = ?, password = ?, username = ?" +
-                " WHERE id = ?;";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement preparedStatement =
-                     connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+                     connection.prepareStatement(updateSecurityInfoQuery, Statement.RETURN_GENERATED_KEYS)
         ) {
             preparedStatement.setString(1, updatedInfo.getEmail());
             preparedStatement.setString(2, updatedInfo.getPassword());
