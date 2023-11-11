@@ -48,6 +48,9 @@ public class SpringSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET,"/stocks").permitAll()
                         .requestMatchers(HttpMethod.GET,"/stocks/**").permitAll()
 
+                        // update stocks in db
+                        .requestMatchers(HttpMethod.POST,"/stocks/update").hasRole(ADMIN.name())
+
                         // interacting with User
                         .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())
                         .requestMatchers(HttpMethod.POST,"/users").hasRole(ADMIN.name())
