@@ -71,7 +71,4 @@ public class UserService {
         return userRepository.isAdminByLogin(login);
     }
 
-    public boolean isSame(String login, int id) {
-        return userRepository.isSamePerson(login, id);
-    }
 }

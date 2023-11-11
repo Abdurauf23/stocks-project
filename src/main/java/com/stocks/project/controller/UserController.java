@@ -74,24 +74,15 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
+    public ResponseEntity<?> getById(@PathVariable int userId) {
         Optional<StockUser> stockUser = userService.findById(userId);
-
-        String login = principal.getName();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)){
-            if (stockUser.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"
-                        }
-                        """);
-            }
-            return new ResponseEntity<>(stockUser.get(), HttpStatus.OK);
+        if (stockUser.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(stockUser.get(), HttpStatus.OK);
     }
 
     @Operation(description = "Creating a user")
@@ -120,11 +111,7 @@ public class UserController {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "'firstName' is required to create a user." \s
-                    }
-                    """);
+                    .body(new ErrorModel(400, "'firstName' is required to create a user."));
         }
     }
 
@@ -142,24 +129,16 @@ public class UserController {
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId, Principal principal) {
-        String login = principal.getName();
-        if (userService.isSame(login, userId) || userService.isAdmin(login)) {
-            try {
-                userService.delete(userId);
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                                {
-                                    "error" : "No such user"\s
-                                }
-                                """);
-            }
+    public ResponseEntity<?> deleteUser(@PathVariable int userId) {
+        try {
+            userService.delete(userId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (NoSuchUserException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @Operation(description = "Update a user")
@@ -177,25 +156,16 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @PutMapping
-    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser,
-                                        Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser) {
         int userId = updatedStockUser.getUserId();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            try {
-                return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"\s
-                        }
-                        """);
-            }
+        try {
+            return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
+        } catch (NoSuchUserException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 
     @Operation(description = "Get own account information")
@@ -216,12 +186,8 @@ public class UserController {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                          {
-                            "error": "Something went wrong. Try authenticating one more time."
-                          }
-                          """);
+                    .body(new ErrorModel(500, "Something went wrong"));
         }
-        return new ResponseEntity<>(userService.findById(byUserLogin.get().getId()),HttpStatus.OK);
+        return new ResponseEntity<>(userService.findById(byUserLogin.get().getId()), HttpStatus.OK);
     }
 }

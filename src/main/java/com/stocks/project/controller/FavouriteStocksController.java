@@ -64,10 +64,7 @@ public class FavouriteStocksController {
         }
         int userId = byUserLogin.get().getId();
 
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
     }
 
     @Operation(description = "Add stocks to favourite.")
@@ -85,15 +82,9 @@ public class FavouriteStocksController {
                     content = @Content)
     })
     @PostMapping
-    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto,
-                                                 Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto) {
         int userId = dto.getUserId();
         String stockName = dto.getSymbol();
-
-        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
         try {
             userService.addStockToFavourite(userId, stockName);
             return new ResponseEntity<>(HttpStatus.CREATED);
@@ -101,19 +92,12 @@ public class FavouriteStocksController {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such stock with this name. Check spelling"
-                            }
-                            """);
+                    .body(new ErrorModel(404, "No such stock with this name. Check spelling"));
         } catch (NoSuchUserException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such user"
-                            }""");
+                    .body(new ErrorModel(404, "No such user"));
         }
     }
 
@@ -132,15 +116,10 @@ public class FavouriteStocksController {
                     content = @Content)
     })
     @DeleteMapping
-    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto,
-                                                 Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto) {
         int userId = dto.getUserId();
         String stockName = dto.getSymbol();
 
-        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
         try {
             userService.deleteStockFromFavourite(userId, stockName);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -148,20 +127,12 @@ public class FavouriteStocksController {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such stock with this name. Check spelling"
-                            }
-                            """);
+                    .body(new ErrorModel(404, "No such stock with this name. Check spelling"));
         } catch (NoSuchUserException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such user"
-                            }
-                            """);
+                    .body(new ErrorModel(404, "No such user"));
         }
     }
 }

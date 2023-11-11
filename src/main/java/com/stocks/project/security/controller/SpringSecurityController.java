@@ -2,6 +2,7 @@ package com.stocks.project.security.controller;
 
 import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NotEnoughDataException;
+import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.UserRegistrationDTO;
 import com.stocks.project.security.model.AuthRequest;
@@ -70,20 +71,12 @@ public class SpringSecurityController {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Email or username is already used."
-                    }
-                    """);
+                    .body(new ErrorModel(400, "Email or username is already used."));
         } catch (NotEnoughDataException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Not enough data is filled."
-                    }
-                    """);
+                    .body(new ErrorModel(400, "Not enough data. Fill all fields"));
         }
     }
 }

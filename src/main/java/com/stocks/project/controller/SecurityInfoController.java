@@ -7,7 +7,6 @@ import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.model.StockUser;
 import com.stocks.project.service.SecurityInfoService;
-import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,12 +33,9 @@ import java.util.Optional;
 @SecurityRequirement(name = "Bearer Authentication")
 public class SecurityInfoController {
     private final SecurityInfoService securityInfoService;
-    private final UserService userService;
 
-    public SecurityInfoController(SecurityInfoService securityInfoService,
-                                  UserService userService) {
+    public SecurityInfoController(SecurityInfoService securityInfoService) {
         this.securityInfoService = securityInfoService;
-        this.userService = userService;
     }
 
     @Operation(description = "List of all users security info in DB")
@@ -74,24 +69,16 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
+    public ResponseEntity<?> getById(@PathVariable int userId) {
         Optional<SecurityInfo> securityInfo = securityInfoService.findById(userId);
 
-        String login = principal.getName();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            if (securityInfo.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"
-                        }
-                        """);
-            }
-            return new ResponseEntity<>(securityInfo.get(), HttpStatus.OK);
+        if (securityInfo.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(securityInfo.get(), HttpStatus.OK);
     }
 
     @Operation(description = "Creating a user")
@@ -121,40 +108,24 @@ public class SecurityInfoController {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "Bad request"
-                        }
-                        """);
+                        .body(new ErrorModel(400, "Not enough data"));
             }
             return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
         } catch (NotEnoughDataException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Not enough data"
-                    }
-                    """);
+                    .body(new ErrorModel(400, "Not enough data"));
         } catch (NoSuchUserException e) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
+                    .body(new ErrorModel(404, "No such user"));
         } catch (EmailOrUsernameIsAlreadyUsedException e) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Email or username is already used"
-                    }
-                    """);
+                    .body(new ErrorModel(400, "Email or username is already used"));
         }
     }
 
@@ -179,11 +150,7 @@ public class SecurityInfoController {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
+                    .body(new ErrorModel(404, "No such user"));
         }
         return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
@@ -207,33 +174,20 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @PutMapping
-    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo,
-                                    Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo) {
         int userId = updatedInfo.getUserId();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            try {
-                return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
-            } catch (EmailOrUsernameIsAlreadyUsedException e) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                    {
-                        "error" : "Email or username is already used"
-                    }
-                    """);
-            }
+        try {
+            return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
+        } catch (NoSuchUserException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
+        } catch (EmailOrUsernameIsAlreadyUsedException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(400, "Email or username is already used"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
 }
