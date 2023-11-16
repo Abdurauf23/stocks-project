@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,14 +68,10 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getById(@PathVariable int userId) {
+    public ResponseEntity<?> getById(@PathVariable int userId) throws NoSuchUserException {
         Optional<SecurityInfo> securityInfo = securityInfoService.findById(userId);
-
         if (securityInfo.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
+            throw new NoSuchUserException();
         }
         return new ResponseEntity<>(securityInfo.get(), HttpStatus.OK);
     }
@@ -100,33 +95,15 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo) {
-        try {
-            int userId = newSecurityInfo.getUserId();
-            Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
-            if (securityInfo.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorModel(400, "Not enough data"));
-            }
-            return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
-        } catch (NotEnoughDataException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "Not enough data"));
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
-        } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "Email or username is already used"));
+    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo)
+            throws NoSuchUserException, NotEnoughDataException, EmailOrUsernameIsAlreadyUsedException {
+        int userId = newSecurityInfo.getUserId();
+        Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
+        if (securityInfo.isEmpty()) {
+            throw new NotEnoughDataException();
         }
+        return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
+
     }
 
     @Operation(description = "Deleting a Security info for User")
@@ -143,15 +120,8 @@ public class SecurityInfoController {
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> delete(@PathVariable int userId) {
-        try {
-            securityInfoService.delete(userId);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
-        }
+    public ResponseEntity<?> delete(@PathVariable int userId) throws NoSuchUserException {
+        securityInfoService.delete(userId);
         return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
@@ -174,20 +144,10 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @PutMapping
-    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo) {
+    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo)
+            throws NoSuchUserException, EmailOrUsernameIsAlreadyUsedException {
         int userId = updatedInfo.getUserId();
-        try {
-            return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
-        } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "Email or username is already used"));
-        }
+        return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
+
     }
 }

@@ -100,19 +100,12 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody StockUser newStockUser) {
-        try {
-            Optional<StockUser> stockUser = userService.createUser(newStockUser);
-            if (stockUser.isPresent()) {
-                return new ResponseEntity<>(stockUser.get(), HttpStatus.CREATED);
-            }
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (NoFirstNameException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "'firstName' is required to create a user."));
+    public ResponseEntity<?> createUser(@RequestBody StockUser newStockUser) throws NoFirstNameException {
+        Optional<StockUser> stockUser = userService.createUser(newStockUser);
+        if (stockUser.isPresent()) {
+            return new ResponseEntity<>(stockUser.get(), HttpStatus.CREATED);
         }
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     @Operation(description = "Deleting a User")
@@ -129,16 +122,9 @@ public class UserController {
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId) {
-        try {
-            userService.delete(userId);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
-        }
+    public ResponseEntity<?> deleteUser(@PathVariable int userId) throws NoSuchUserException {
+        userService.delete(userId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Operation(description = "Update a user")
@@ -156,16 +142,9 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @PutMapping
-    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser) {
+    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser) throws NoSuchUserException {
         int userId = updatedStockUser.getUserId();
-        try {
-            return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(404, "No such user"));
-        }
+        return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
     }
 
     @Operation(description = "Get own account information")

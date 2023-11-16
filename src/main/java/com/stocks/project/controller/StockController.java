@@ -1,8 +1,11 @@
 package com.stocks.project.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.stocks.project.exception.NoStockWithThisNameException;
 import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.StockMetaData;
 import com.stocks.project.model.StockData;
+import com.stocks.project.service.EmailSenderService;
 import com.stocks.project.service.StockService;
 import com.stocks.project.service.UpdateStocksService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,11 +31,15 @@ import java.util.Optional;
 public class StockController {
     private final StockService stockService;
     private final UpdateStocksService updateStocksService;
+    private final EmailSenderService emailSenderService;
 
     @Autowired
-    public StockController(StockService stockService, UpdateStocksService updateStocksService) {
+    public StockController(StockService stockService,
+                           UpdateStocksService updateStocksService,
+                           EmailSenderService emailSenderService) {
         this.stockService = stockService;
         this.updateStocksService = updateStocksService;
+        this.emailSenderService = emailSenderService;
     }
 
     @Operation(description = "Get value for particular Stock symbol.")
@@ -48,15 +54,13 @@ public class StockController {
                             schema = @Schema(implementation = StockData.class)))
     })
     @GetMapping("/{symbol}")
-    public ResponseEntity<?> getStock(@PathVariable String symbol) {
+    public ResponseEntity<?> getStock(@PathVariable String symbol) throws NoStockWithThisNameException {
         Optional<StockData> stockData = stockService.getStock(symbol);
         if (stockData.isPresent()) {
             return new ResponseEntity<>(stockData.get(), HttpStatus.OK);
+        } else {
+            throw new NoStockWithThisNameException();
         }
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorModel(404, "No stock with this name"));
     }
 
     @Operation(description = "List of stocks available.")

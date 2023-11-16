@@ -2,7 +2,6 @@ package com.stocks.project.security.controller;
 
 import com.stocks.project.exception.EmailOrUsernameIsAlreadyUsedException;
 import com.stocks.project.exception.NotEnoughDataException;
-import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.Role;
 import com.stocks.project.model.UserRegistrationDTO;
 import com.stocks.project.security.model.AuthRequest;
@@ -16,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,20 +61,9 @@ public class SpringSecurityController {
                     content = @Content)
     })
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO dto) {
-        try {
-            userService.register(dto, Role.USER);
-            return new ResponseEntity<>(HttpStatus.CREATED);
-        } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "Email or username is already used."));
-        } catch (NotEnoughDataException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorModel(400, "Not enough data. Fill all fields"));
-        }
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO dto)
+            throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
+        userService.register(dto, Role.USER);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }
