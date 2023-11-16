@@ -86,4 +86,16 @@ public class StockController {
         updateStocksService.updateStocks();
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
+
+    @Operation(description = "Send emails to users with favourite stocks.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201",
+                    description = "Send emails to users with favourite stocks.",
+                    content = @Content)
+    })
+    @PostMapping("/sendEmails")
+    public ResponseEntity<?> sendEmails() throws JsonProcessingException {
+        emailSenderService.sendEmail();
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
 }
