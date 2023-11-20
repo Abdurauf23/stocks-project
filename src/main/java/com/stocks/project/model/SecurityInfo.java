@@ -1,6 +1,7 @@
 package com.stocks.project.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @AllArgsConstructor
 @Data
+@Builder
 public class SecurityInfo implements UserDetails {
     private int userId;
     private String username;

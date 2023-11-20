@@ -14,6 +14,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
@@ -34,6 +35,41 @@ public class UserRepository {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${stocksUser.findAllQuery}")
+    private String selectAllFromStocksUser;
+    @Value("${stocksUser.findByIdQuery}")
+    private String selectByIdFromStocksUser;
+    @Value("${stocksUser.checkUniqueColumnsQuery}")
+    private String checkUniqueColumns;
+    @Value("${stocksUser.isAdminByLoginQuery}")
+    private String isAdminByLoginQuery;
+    @Value("${stocksUser.createUserQuery}")
+    private String createUserQuery;
+    @Value("${stocksUser.deleteForAdminQuery1}")
+    private String deleteForAdminQuery1;
+    @Value("${stocksUser.deleteForAdminQuery2}")
+    private String deleteForAdminQuery2;
+    @Value("${stocksUser.deleteForUserQuery}")
+    private String deleteForUserQuery;
+    @Value("${stocksUser.updateUserQuery}")
+    private String updateUserQuery;
+    @Value("${stocksUser.registerQuery1}")
+    private String registerQuery1;
+    @Value("${stocksUser.registerQuery2}")
+    private String registerQuery2;
+    @Value("${stocksUser.getAllFavouriteStocksQuery}")
+    private String getAllFavouriteStocksQuery;
+    @Value("${stocksUser.getPeopleWithFavStocksQuery}")
+    private String getPeopleWithFavStocksQuery;
+    @Value("${stocksUser.addStockToFavouriteQuery1}")
+    private String addStockToFavouriteQuery1;
+    @Value("${stocksUser.addStockToFavouriteQuery2}")
+    private String addStockToFavouriteQuery2;
+    @Value("${stocksUser.deleteStockFromFavouriteQuery1}")
+    private String deleteStockFromFavouriteQuery1;
+    @Value("${stocksUser.deleteStockFromFavouriteQuery2}")
+    private String deleteStockFromFavouriteQuery2;
+
     @Autowired
     public UserRepository(DataSource dataSource, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.dataSource = dataSource;
@@ -43,10 +79,9 @@ public class UserRepository {
 
     public List<StockUser> findAll() {
         List<StockUser> stockUsers = new ArrayList<>();
-        String query = "SELECT * FROM stocks_user;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(selectAllFromStocksUser)
         ) {
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
@@ -60,7 +95,6 @@ public class UserRepository {
 
     public boolean emailOrUsernameIsUsed(String email, String username) {
         boolean duplicate = false;
-        String checkUniqueColumns = "SELECT * FROM security_info WHERE email = ? OR username = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement checkDuplicate =
@@ -77,43 +111,11 @@ public class UserRepository {
         return duplicate;
     }
 
-    public boolean isSamePerson(String login, int id) {
-        boolean isSame = false;
-        String query = """
-                SELECT *
-                FROM security_info
-                WHERE (email = ? OR username = ?) AND id = ?;""";
-        try (
-                Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
-        ) {
-            preparedStatement.setString(1, login);
-            preparedStatement.setString(2, login);
-            preparedStatement.setInt(3, id);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                isSame = true;
-            }
-        } catch (SQLException e) {
-            log.error(e.getMessage());
-        }
-        return isSame;
-    }
-
     public boolean isAdminByLogin(String login) {
         boolean isAdmin = false;
-        String query = """
-                SELECT
-                    (CASE
-                            WHEN role_id = 1 THEN TRUE
-                            ELSE FALSE
-                    END)
-                FROM security_info
-                WHERE email = ? OR username = ?;
-                """;
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(isAdminByLoginQuery)
         ) {
             preparedStatement.setString(1, login);
             preparedStatement.setString(2, login);
@@ -129,10 +131,9 @@ public class UserRepository {
 
     public Optional<StockUser> findById(int id) {
         StockUser stockUser = null;
-        String query = "SELECT * FROM stocks_user WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(selectByIdFromStocksUser)
         ) {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -150,11 +151,10 @@ public class UserRepository {
             throw new NoFirstNameException();
         }
         Optional<StockUser> user = Optional.empty();
-        String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
-                        connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+                        connection.prepareStatement(createUserQuery, Statement.RETURN_GENERATED_KEYS)
         ) {
             preparedStatement.setString(1, newStockUser.getFirstName());
             preparedStatement.setString(2, newStockUser.getSecondName());
@@ -176,13 +176,11 @@ public class UserRepository {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
-        String query = "DELETE FROM stocks_user WHERE id = ?;";
-        String queryToDeleteInfo = "DELETE FROM security_info WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement deleteUserPrepStatement = connection.prepareStatement(query);
+                PreparedStatement deleteUserPrepStatement = connection.prepareStatement(deleteForAdminQuery1);
                 PreparedStatement deleteSecurityInfoPrepStatement =
-                        connection.prepareStatement(queryToDeleteInfo)
+                        connection.prepareStatement(deleteForAdminQuery2)
         ) {
             try {
                 connection.setAutoCommit(false);
@@ -205,11 +203,10 @@ public class UserRepository {
         if (findById(userId).isEmpty()) {
             throw new NoSuchUserException();
         }
-        String query = "UPDATE stocks_user SET is_deleted = TRUE WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
-                        connection.prepareStatement(query)
+                        connection.prepareStatement(deleteForUserQuery)
         ) {
             preparedStatement.setInt(1, userId);
             preparedStatement.executeUpdate();
@@ -234,12 +231,10 @@ public class UserRepository {
         }
 
         Optional<StockUser> user = Optional.empty();
-        String query = "UPDATE stocks_user SET first_name = ?, second_name = ?, birthday = ?, updated_at = NOW() " +
-                "WHERE id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement =
-                        connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+                        connection.prepareStatement(updateUserQuery, Statement.RETURN_GENERATED_KEYS)
         ) {
             preparedStatement.setString(1, updatedStockUser.getFirstName());
             preparedStatement.setString(2, updatedStockUser.getSecondName());
@@ -260,15 +255,12 @@ public class UserRepository {
     @Transactional
     public void register(UserRegistrationDTO dto, Role role)
             throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
-        String query = "INSERT INTO stocks_user (first_name, second_name, birthday) VALUES (?, ?, ?);";
-        String queryToDeleteInfo = "INSERT INTO security_info (id, username, password, email, role_id) " +
-                "VALUES (?, ?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement insertUser =
-                        connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+                        connection.prepareStatement(registerQuery1, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement insertSecurityInfo =
-                        connection.prepareStatement(queryToDeleteInfo)
+                        connection.prepareStatement(registerQuery2)
         ) {
             try {
                 connection.setAutoCommit(false);
@@ -307,19 +299,9 @@ public class UserRepository {
 
     public List<EmailStockDTO> getAllFavouriteStocks(int userId) {
         List<EmailStockDTO> stocksList = new ArrayList<>();
-        String query = """
-                SELECT symbol, date_time, open, high, low, close, volume, currency
-                FROM stock_users_fav_stocks
-                         INNER JOIN stock_meta sm ON sm.id = stock_users_fav_stocks.meta_id
-                         INNER JOIN stock_value sv ON sm.id = sv.meta_id
-                WHERE user_id = ? AND date_time = (
-                    SELECT MAX(date_time)
-                    FROM stock_value
-                );
-                """;
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(getAllFavouriteStocksQuery)
         ) {
             preparedStatement.setInt(1, userId);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -343,13 +325,8 @@ public class UserRepository {
 
     public List<Pair<Integer, String>> getPeopleWithFavStocks() {
         List<Pair<Integer, String>> integerList = new ArrayList<>();
-        String query = """
-                SELECT DISTINCT fav.user_id, email
-                FROM stock_users_fav_stocks fav
-                INNER JOIN public.security_info si ON fav.user_id = si.id;
-                """;
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)
+             PreparedStatement statement = connection.prepareStatement(getPeopleWithFavStocksQuery)
         ) {
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
@@ -366,13 +343,11 @@ public class UserRepository {
     }
 
     public void addStockToFavourite(int userId, String symbol) throws NoSuchUserException, NoStockWithThisNameException {
-        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
-        String addToFavQuery = "INSERT INTO stock_users_fav_stocks (user_id, meta_id) VALUES (?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement selectMeta = connection.prepareStatement(addStockToFavouriteQuery1);
                 PreparedStatement insertIntoFavourites =
-                        connection.prepareStatement(addToFavQuery)
+                        connection.prepareStatement(addStockToFavouriteQuery2)
         ) {
             try {
                 connection.setAutoCommit(false);
@@ -401,13 +376,11 @@ public class UserRepository {
 
     public void deleteStockFromFavourite(int userId, String stockName)
             throws NoStockWithThisNameException, NoSuchUserException {
-        String query = "SELECT id FROM stock_meta WHERE symbol = ?;";
-        String deleteFromFavQuery = "DELETE FROM stock_users_fav_stocks WHERE user_id = ? AND meta_id = ?;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement selectMeta = connection.prepareStatement(query);
+                PreparedStatement selectMeta = connection.prepareStatement(deleteStockFromFavouriteQuery1);
                 PreparedStatement insertIntoFavourites =
-                        connection.prepareStatement(deleteFromFavQuery)
+                        connection.prepareStatement(deleteStockFromFavouriteQuery2)
         ) {
             try {
                 connection.setAutoCommit(false);

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,7 +32,7 @@ public class EmailSenderService {
     }
 
     @Scheduled(cron = "0 0 8 ? * *") // sends emails at 8 am
-    public void sendEmail() throws JsonProcessingException {
+    public void sendEmail() throws JsonProcessingException{
         log.info("Starting sending emails");
 
         List<Pair<Integer, String>> usersWithFav = userRepository.getPeopleWithFavStocks();
@@ -47,7 +48,11 @@ public class EmailSenderService {
             message.setTo(email);
             message.setSubject(SUBJECT);
             message.setText(text);
-            mailSender.send(message);
+            try {
+                mailSender.send(message);
+            } catch (MailException e) {
+                log.error("Error sending user with email=" + email + ", userId=" + user.a);
+            }
         }
         log.info("Finished sending emails");
     }

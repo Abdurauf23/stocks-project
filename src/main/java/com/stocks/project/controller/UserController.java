@@ -4,6 +4,7 @@ import com.stocks.project.exception.NoFirstNameException;
 import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.StockUser;
+import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,7 +62,7 @@ public class UserController {
     @Operation(description = "Get user with particular ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such stockUser in DB.",
+                    description = "For admin: No such stockUser in DB.",
                     content = @Content(mediaType = "application.json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -73,30 +74,21 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
+    public ResponseEntity<?> getById(@PathVariable int userId) {
         Optional<StockUser> stockUser = userService.findById(userId);
-
-        String login = principal.getName();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)){
-            if (stockUser.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"\s
-                        }
-                        """);
-            }
-            return new ResponseEntity<>(stockUser.get(), HttpStatus.OK);
+        if (stockUser.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(404, "No such user"));
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(stockUser.get(), HttpStatus.OK);
     }
 
     @Operation(description = "Creating a user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "400",
-                    description = "For administrator: User should have first name.",
+                    description = "For admin: User should have first name.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -108,29 +100,18 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody StockUser newStockUser) {
-        try {
-            Optional<StockUser> stockUser = userService.createUser(newStockUser);
-            if (stockUser.isPresent()) {
-                return new ResponseEntity<>(stockUser.get(), HttpStatus.CREATED);
-            }
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (NoFirstNameException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "'firstName' is required to create a user." \s
-                    }
-                    """);
+    public ResponseEntity<?> createUser(@RequestBody StockUser newStockUser) throws NoFirstNameException {
+        Optional<StockUser> stockUser = userService.createUser(newStockUser);
+        if (stockUser.isPresent()) {
+            return new ResponseEntity<>(stockUser.get(), HttpStatus.CREATED);
         }
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
     @Operation(description = "Deleting a User")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such user.",
+                    description = "For admin: No such user.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -141,34 +122,19 @@ public class UserController {
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId, Principal principal) {
-        String login = principal.getName();
-        if (userService.isSame(login, userId) || userService.isAdmin(login)) {
-            try {
-                userService.delete(userId);
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                                {
-                                    "error" : "No such user"\s
-                                }
-                                """);
-            }
-        }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    public ResponseEntity<?> deleteUser(@PathVariable int userId) throws NoSuchUserException {
+        userService.delete(userId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Operation(description = "Update a user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such user.",
+                    description = "For admin: No such user.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
-                    description = "For user: If user wants to PUT for another user.",
+                    description = "For user: If user wants to update another user.",
                     content = @Content),
             @ApiResponse(responseCode = "200",
                     description = "User is successfully changed",
@@ -176,37 +142,31 @@ public class UserController {
                             schema = @Schema(implementation = StockUser.class)))
     })
     @PutMapping
-    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser,
-                                        Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> updateUser(@RequestBody StockUser updatedStockUser) throws NoSuchUserException {
         int userId = updatedStockUser.getUserId();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            try {
-                return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"\s
-                        }
-                        """);
-            }
-        }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(userService.updateUser(updatedStockUser, userId), HttpStatus.OK);
     }
 
-
+    @Operation(description = "Get own account information")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200",
+                    description = "Just self user information",
+                    content = @Content(mediaType = "application/json",
+                        schema = @Schema(implementation = StockUser.class))),
+            @ApiResponse(responseCode = "500",
+                    description = "Something went wrong",
+                    content = @Content(mediaType = "application/json",
+                        schema = @Schema(implementation = ErrorModel.class)))
+    })
     @GetMapping("/me")
     public ResponseEntity<?> getSelf(Principal principal) {
-        return new ResponseEntity<>(
-                userService.findById(
-                        credentialsRepository
-                                .findByUserLogin(principal.getName())
-                                .get()
-                                .getId()
-                ),
-                HttpStatus.OK);
+        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(principal.getName());
+        if (byUserLogin.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ErrorModel(500, "Something went wrong"));
+        }
+        return new ResponseEntity<>(userService.findById(byUserLogin.get().getId()), HttpStatus.OK);
     }
 }

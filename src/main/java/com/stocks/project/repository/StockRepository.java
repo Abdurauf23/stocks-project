@@ -8,6 +8,7 @@ import com.stocks.project.model.StockValue;
 import com.stocks.project.utils.StockDataMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -26,6 +27,24 @@ public class StockRepository {
     private final DataSource dataSource;
     private final StockDataMapper stockDataMapper;
 
+    @Value("${stocks.findAllMetaQuery}")
+    private String findAllMetaQuery;
+
+    @Value("${stocks.findBySymbolQuery}")
+    private String findBySymbolQuery;
+
+    @Value("${stocks.addStockDataQuery1}")
+    private String addStockDataQuery1;
+
+    @Value("${stocks.addStockDataQuery2}")
+    private String addStockDataQuery2;
+
+    @Value("${stocks.addStockMetaQuery}")
+    private String addStockMetaQuery;
+
+    @Value("${stocks.deleteMetaQuery}")
+    private String deleteMetaQuery;
+
     @Autowired
     public StockRepository(DataSource dataSource, StockDataMapper stockDataMapper) {
         this.dataSource = dataSource;
@@ -34,17 +53,9 @@ public class StockRepository {
 
     public Optional<StockData> findBySymbol(String symbol) {
         StockData stockData = null;
-        String query = """
-                SELECT m.id AS meta_id, symbol, data_interval, currency,
-                       exchange_timezone, exchange, mic_code, type_, stock_status,
-                       v.id AS value_id, date_time, open, high, low, close, volume
-                FROM stock_meta AS m
-                         INNER JOIN stock_value AS v ON m.id = v.meta_id
-                WHERE date_time = (SELECT MAX(date_time) FROM stock_value WHERE symbol = ?);
-                """;
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(findBySymbolQuery)
         ) {
             preparedStatement.setString(1, symbol);
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -59,10 +70,9 @@ public class StockRepository {
 
     public List<StockMetaData> findAllMeta() {
         List<StockMetaData> list = new ArrayList<>();
-        String query = "SELECT * FROM stock_meta;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement(query)
+                PreparedStatement preparedStatement = connection.prepareStatement(findAllMetaQuery)
         ) {
             ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
@@ -75,13 +85,10 @@ public class StockRepository {
     }
 
     public void addStockData(StockData stockData) throws NoStockMetaDataForThisSymbol {
-        String getMetaIdQuery = "SELECT id FROM stock_meta WHERE symbol = ?;";
-        String insertQuery = "INSERT INTO stock_value (meta_id, date_time, open, high, low, close, volume) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement getStatement = connection.prepareStatement(getMetaIdQuery);
-                PreparedStatement insertStatement = connection.prepareStatement(insertQuery)
+                PreparedStatement getStatement = connection.prepareStatement(addStockDataQuery1);
+                PreparedStatement insertStatement = connection.prepareStatement(addStockDataQuery2)
         ) {
             getStatement.setString(1, stockData.getMeta().getSymbol());
             ResultSet resultSet = getStatement.executeQuery();
@@ -111,16 +118,12 @@ public class StockRepository {
 
     public void addStockMeta(StockMetaData stockMetaData) throws StockWithThisNameAlreadyExistsException {
         // stocks with this name already exists
-        if (findAllMeta().stream()
-                .anyMatch(m -> m.getSymbol().equals(stockMetaData.getSymbol()))
-        ) {
+        if (findAllMeta().stream().anyMatch(m -> m.getSymbol().equals(stockMetaData.getSymbol()))) {
             throw new StockWithThisNameAlreadyExistsException();
         }
-        String query = "INSERT INTO stock_meta (symbol, data_interval, currency, exchange_timezone, exchange, mic_code, type_, stock_status) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement(query)
+                PreparedStatement statement = connection.prepareStatement(addStockMetaQuery)
         ) {
             statement.setString(1, stockMetaData.getSymbol());
             statement.setString(2, stockMetaData.getInterval());
@@ -138,10 +141,9 @@ public class StockRepository {
     }
 
     public void deleteMeta(String symbol) {
-        String query = "DELETE FROM stock_meta WHERE symbol = ?;";
         try (
                 Connection connection = dataSource.getConnection();
-                PreparedStatement statement = connection.prepareStatement(query)
+                PreparedStatement statement = connection.prepareStatement(deleteMetaQuery)
         ) {
             statement.setString(1, symbol);
             statement.executeUpdate();

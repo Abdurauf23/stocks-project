@@ -44,9 +44,14 @@ public class SpringSecurityConfiguration {
                         .requestMatchers(HttpMethod.POST,"/authentication").permitAll()
                         .requestMatchers(HttpMethod.POST,"/register").permitAll()
 
+                        // update stocks in db
+                        .requestMatchers(HttpMethod.POST,"/stocks/update").hasRole(ADMIN.name())
+                        .requestMatchers(HttpMethod.POST,"/stocks/sendEmails").hasRole(ADMIN.name())
+
                         // getting stocks
                         .requestMatchers(HttpMethod.GET,"/stocks").permitAll()
                         .requestMatchers(HttpMethod.GET,"/stocks/**").permitAll()
+
 
                         // interacting with User
                         .requestMatchers(HttpMethod.GET,"/users").hasRole(ADMIN.name())

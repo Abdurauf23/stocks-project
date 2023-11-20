@@ -7,7 +7,6 @@ import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.SecurityInfo;
 import com.stocks.project.model.StockUser;
 import com.stocks.project.service.SecurityInfoService;
-import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +14,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,12 +32,9 @@ import java.util.Optional;
 @SecurityRequirement(name = "Bearer Authentication")
 public class SecurityInfoController {
     private final SecurityInfoService securityInfoService;
-    private final UserService userService;
 
-    public SecurityInfoController(SecurityInfoService securityInfoService,
-                                  UserService userService) {
+    public SecurityInfoController(SecurityInfoService securityInfoService) {
         this.securityInfoService = securityInfoService;
-        this.userService = userService;
     }
 
     @Operation(description = "List of all users security info in DB")
@@ -62,7 +56,7 @@ public class SecurityInfoController {
     @Operation(description = "Get security info for particular user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "404",
-                    description = "For administrator: No such user in DB.",
+                    description = "For admin: No such user in DB.",
                     content = @Content(mediaType = "application.json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
@@ -74,85 +68,42 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getById(@PathVariable int userId, Principal principal) {
+    public ResponseEntity<?> getById(@PathVariable int userId) throws NoSuchUserException {
         Optional<SecurityInfo> securityInfo = securityInfoService.findById(userId);
-
-        String login = principal.getName();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            if (securityInfo.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "No such user"\s
-                        }
-                        """);
-            }
-            return new ResponseEntity<>(securityInfo.get(), HttpStatus.OK);
+        if (securityInfo.isEmpty()) {
+            throw new NoSuchUserException();
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(securityInfo.get(), HttpStatus.OK);
     }
 
     @Operation(description = "Creating a user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "400",
-                    description = "Not enough data for registration OR Email or username is already used",
+                    description = "For admin: Not enough data for registration OR Email or username is already used",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "404",
-                    description = "No User with this ID.",
+                    description = "For admin: No User with this ID.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorModel.class))),
             @ApiResponse(responseCode = "403",
                     description = "For user: If user wants to create.",
                     content = @Content),
             @ApiResponse(responseCode = "201",
-                    description = "Security info is successfully created in DB.",
+                    description = "For admin: Security info is successfully created in DB.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo) {
-        try {
-            int userId = newSecurityInfo.getUserId();
-            Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
-            if (securityInfo.isEmpty()) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                        {
-                            "error" : "Bad request"
-                        }
-                        """);
-            }
-            return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
-        } catch (NotEnoughDataException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error":"Not enough data"
-                    }
-                    """);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
-        } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
-                    {
-                        "error" : "Email or username is already used"
-                    }
-                    """);
+    public ResponseEntity<?> create(@RequestBody SecurityInfo newSecurityInfo)
+            throws NoSuchUserException, NotEnoughDataException, EmailOrUsernameIsAlreadyUsedException {
+        int userId = newSecurityInfo.getUserId();
+        Optional<SecurityInfo> securityInfo = securityInfoService.create(newSecurityInfo, userId);
+        if (securityInfo.isEmpty()) {
+            throw new NotEnoughDataException();
         }
+        return new ResponseEntity<>(securityInfo.get(), HttpStatus.CREATED);
+
     }
 
     @Operation(description = "Deleting a Security info for User")
@@ -165,23 +116,12 @@ public class SecurityInfoController {
                     description = "For user: If user wants to delete another users security info.",
                     content = @Content),
             @ApiResponse(responseCode = "204",
-                    description = "Security info is successfully deleted",
+                    description = "For admin: Security info is successfully deleted",
                     content = @Content)
     })
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> delete(@PathVariable int userId) {
-        try {
-            securityInfoService.delete(userId);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
-        }
+    public ResponseEntity<?> delete(@PathVariable int userId) throws NoSuchUserException {
+        securityInfoService.delete(userId);
         return new ResponseEntity<>(null, HttpStatus.NO_CONTENT);
     }
 
@@ -204,33 +144,10 @@ public class SecurityInfoController {
                             schema = @Schema(implementation = SecurityInfo.class)))
     })
     @PutMapping
-    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo,
-                                    Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> update(@RequestBody SecurityInfo updatedInfo)
+            throws NoSuchUserException, EmailOrUsernameIsAlreadyUsedException {
         int userId = updatedInfo.getUserId();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            try {
-                return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
-            } catch (NoSuchUserException e) {
-                return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                    {
-                        "error" : "No such user"
-                    }
-                    """);
-            } catch (EmailOrUsernameIsAlreadyUsedException e) {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body("""
-                    {
-                        "error" : "Email or username is already used"
-                    }
-                    """);
-            }
-        }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(securityInfoService.update(updatedInfo, userId), HttpStatus.OK);
+
     }
 }

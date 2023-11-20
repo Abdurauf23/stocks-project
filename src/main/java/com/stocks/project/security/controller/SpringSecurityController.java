@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,28 +61,9 @@ public class SpringSecurityController {
                     content = @Content)
     })
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO dto) {
-        try {
-            userService.register(dto, Role.USER);
-            return new ResponseEntity<>(HttpStatus.CREATED);
-        } catch (EmailOrUsernameIsAlreadyUsedException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Email or username is already used."
-                    }
-                    """);
-        } catch (NotEnoughDataException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                    {
-                        "error" : "Not enough data is filled."
-                    }
-                    """);
-        }
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO dto)
+            throws EmailOrUsernameIsAlreadyUsedException, NotEnoughDataException {
+        userService.register(dto, Role.USER);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

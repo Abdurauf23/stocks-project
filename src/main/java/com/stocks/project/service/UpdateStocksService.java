@@ -17,7 +17,7 @@ import java.util.Objects;
 
 @Slf4j
 @Service
-public class UpdateStocks {
+public class UpdateStocksService {
     @Value("${base_url_external_api}")
     private String BASE_URL;
     @Value("${external_api_key}")
@@ -27,13 +27,13 @@ public class UpdateStocks {
     private final RestTemplate restTemplate;
 
     @Autowired
-    public UpdateStocks(StockRepository stockRepository) {
+    public UpdateStocksService(StockRepository stockRepository) {
         this.stockRepository = stockRepository;
         this.restTemplate = new RestTemplate();
     }
 
     @Scheduled(cron = "1 0 0 ? * *") // updates at first second of the day
-    public void updateStocksDate() {
+    public void updateStocks() {
         boolean empty = false;
         long start = System.currentTimeMillis();
         log.info("Updating db started!");

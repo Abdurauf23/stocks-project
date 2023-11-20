@@ -5,6 +5,7 @@ import com.stocks.project.exception.NoSuchUserException;
 import com.stocks.project.model.ErrorModel;
 import com.stocks.project.model.FavouriteStockManipulationDTO;
 import com.stocks.project.model.StockValue;
+import com.stocks.project.security.model.SecurityCredentials;
 import com.stocks.project.security.repository.SecurityCredentialsRepository;
 import com.stocks.project.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/fav-stocks")
@@ -40,23 +41,28 @@ public class FavouriteStocksController {
         this.credentialsRepository = credentialsRepository;
     }
 
-    @Operation(description = "Get favorite stocks for particular stockUser.")
+    @Operation(description = "Get favorite stocks for self.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "403",
+                    description = "Not authenticated",
                     content = @Content),
             @ApiResponse(responseCode = "200",
-                    description = "For Admin and User: Can access only his fav stocks.",
+                    description = "Get the list of self favourite stocks.",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = StockValue.class)))
+                            schema = @Schema(implementation = StockValue.class))),
+            @ApiResponse(responseCode = "500",
+                    description = "Something went wrong",
+                    content = @Content)
     })
     @GetMapping
     public ResponseEntity<?> getFavouriteStocks(Principal principal) {
         String login = principal.getName();
-        int userId = credentialsRepository.findByUserLogin(login).get().getId();
-        if (userService.isAdmin(login) || userService.isSame(login, userId)) {
-            return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
+        Optional<SecurityCredentials> byUserLogin = credentialsRepository.findByUserLogin(login);
+        if (byUserLogin.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        int userId = byUserLogin.get().getId();
+        return new ResponseEntity<>(userService.getAllFavouriteStocks(userId), HttpStatus.OK);
     }
 
     @Operation(description = "Add stocks to favourite.")
@@ -74,36 +80,12 @@ public class FavouriteStocksController {
                     content = @Content)
     })
     @PostMapping
-    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto,
-                                                 Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> addStockToFavourite(@RequestBody FavouriteStockManipulationDTO dto)
+            throws NoStockWithThisNameException, NoSuchUserException {
         int userId = dto.getUserId();
         String stockName = dto.getSymbol();
-
-        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-        try {
-            userService.addStockToFavourite(userId, stockName);
-            return new ResponseEntity<>(HttpStatus.CREATED);
-        } catch (NoStockWithThisNameException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such stock with this name. Check spelling"\s
-                            }
-                            """);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such user"\s
-                            }""");
-        }
+        userService.addStockToFavourite(userId, stockName);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @Operation(description = "Delete stock from the list of favourites.")
@@ -121,36 +103,11 @@ public class FavouriteStocksController {
                     content = @Content)
     })
     @DeleteMapping
-    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto,
-                                                 Principal principal) {
-        String login = principal.getName();
+    public ResponseEntity<?> deleteFromFavourite(@RequestBody FavouriteStockManipulationDTO dto)
+            throws NoStockWithThisNameException, NoSuchUserException {
         int userId = dto.getUserId();
         String stockName = dto.getSymbol();
-
-        if (!(userService.isAdmin(login) || userService.isSame(login, userId))) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
-        try {
-            userService.deleteStockFromFavourite(userId, stockName);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (NoStockWithThisNameException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such stock with this name. Check spelling"
-                            }
-                            """);
-        } catch (NoSuchUserException e) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("""
-                            {
-                                "error" : "No such user"
-                            }
-                            """);
-        }
+        userService.deleteStockFromFavourite(userId, stockName);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
